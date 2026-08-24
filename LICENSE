@@ -1,7 +1,14 @@
-Copyright © 2024–2026 NOVA買取サイト. All rights reserved.
+Copyright (c) 2026 Novatech Co., Ltd. All Rights Reserved.
 
-本リポジトリは、開発記録の保存および閲覧のみを目的として公開しています。
+This source code is made available for technical review and record-keeping
+only. No permission is granted to copy, modify, distribute, sublicense, sell,
+deploy, or otherwise reuse this source code or its documentation without prior
+written permission from the copyright holder.
 
-著作権者の事前の書面による許可なく、本ソフトウェアおよび関連資料の全部または一部を複製、転載、改変、配布、販売、商用利用、その他の目的で利用することを禁止します。
+Production-only source code, collection logic, AI routing, prompts, internal
+configuration, and operational parameters are not included in the public
+repository and remain proprietary.
 
-ただし、適用される法令により認められる利用を除きます。
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
