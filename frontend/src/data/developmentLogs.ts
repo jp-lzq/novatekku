@@ -150,16 +150,16 @@ export const DEVELOPMENT_LOGS: DevelopmentLogEntry[] = [
   },
   {
     period: '2026.08',
-    phase: { en: 'NOVA AI', zh: 'NOVA AI', ja: 'NOVA AI' },
+    phase: { en: 'API Platform', zh: 'API 技术', ja: 'API基盤' },
     title: {
-      en: 'Renewed NOVA AI and the company experience',
-      zh: '更新 NOVA AI 与公司网站体验',
-      ja: 'NOVA AIと会社サイトを刷新',
+      en: 'Updated the price analysis API and delivery foundation',
+      zh: '更新价格分析 API 与服务基础',
+      ja: '価格分析APIの技術更新と提供基盤を整備',
     },
     content: {
-      en: 'Renewed the AI chat, assessment flow, company pages, multilingual content, and data-focused presentation.',
-      zh: '更新 AI 对话、查定流程、公司页面、多语言内容和数据展示。',
-      ja: 'AIチャット、査定フロー、会社ページ、多言語表示、データ表現をまとめて刷新しました。',
+      en: 'Added versioned data contracts, market outlier filtering, rate limits, and authentication safeguards for stable price analysis delivery.',
+      zh: '加入版本化数据契约、市场异常值过滤、访问限流和认证保护，为稳定提供价格分析功能打好基础。',
+      ja: 'バージョン管理されたデータ契約、相場外れ値除外、レート制限、認証保護を追加し、価格分析機能を安定して提供できる基盤を整えました。',
     },
   },
 ]
