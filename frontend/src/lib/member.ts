@@ -36,3 +36,22 @@ export async function logoutMember(): Promise<void> {
     headers: getCsrfHeaders(),
   })
 }
+
+export async function updateMemberProfile(payload: {
+  username: string
+  email: string
+  current_password: string
+}): Promise<MemberProfile> {
+  return apiPost<MemberProfile>('/api/v1/members/profile', payload, {
+    headers: getCsrfHeaders(),
+  })
+}
+
+export async function changeMemberPassword(payload: {
+  current_password: string
+  new_password: string
+}): Promise<void> {
+  await apiPost('/api/v1/members/change-password', payload, {
+    headers: getCsrfHeaders(),
+  })
+}
