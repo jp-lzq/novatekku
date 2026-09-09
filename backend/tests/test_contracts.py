@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.contracts.analysis import AnalysisProvider, AnalysisRequest, AnalysisResult
 from app.contracts.collection import CollectedOffer, CollectionProvider
@@ -15,7 +15,7 @@ class FixedQuoteSource:
                 item_key="phone-256",
                 amount_minor=98_500,
                 currency="JPY",
-                observed_at=datetime(2026, 1, 10, 9, 0, tzinfo=timezone.utc),
+                observed_at=datetime(2026, 1, 10, 9, 0, tzinfo=UTC),
             )
         ]
 
@@ -34,7 +34,11 @@ class ListQuoteStore:
 
     def save(self, observations):
         existing = set(self.rows)
-        new_rows = [row for row in observations if row not in existing]
+        new_rows = []
+        for row in observations:
+            if row not in existing:
+                new_rows.append(row)
+                existing.add(row)
         self.rows.extend(new_rows)
         return len(new_rows)
 
@@ -55,11 +59,11 @@ def test_replayed_quotes_are_not_inserted_twice() -> None:
         source_key="fixture",
         amount_minor=98_500,
         currency="JPY",
-        observed_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        observed_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
     assert isinstance(repository, PriceReader)
     assert isinstance(repository, PriceWriter)
-    assert repository.save([observation]) == 1
+    assert repository.save([observation, observation]) == 1
     assert repository.save([observation]) == 0
     assert repository.latest("phone-256") == [observation]

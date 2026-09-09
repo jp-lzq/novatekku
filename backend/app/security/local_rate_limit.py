@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import math
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 
 @dataclass
@@ -21,9 +22,17 @@ class SlidingWindowLimiter:
         clock: Callable[[], float] = time.monotonic,
         *,
         cleanup_interval: float = 60.0,
+        max_keys: int = 10_000,
     ):
-        if cleanup_interval <= 0:
+        if (
+            isinstance(cleanup_interval, bool)
+            or not math.isfinite(cleanup_interval)
+            or cleanup_interval <= 0
+        ):
             raise ValueError("cleanup_interval must be positive")
+        if type(max_keys) is not int or max_keys < 1:
+            raise ValueError("max_keys must be a positive integer")
+        self._max_keys = max_keys
         self._clock = clock
         self._cleanup_interval = cleanup_interval
         self._last_cleanup = clock()
@@ -36,8 +45,8 @@ class SlidingWindowLimiter:
         while window.events and window.events[0] <= cutoff:
             window.events.popleft()
 
-    def _cleanup(self, now: float) -> None:
-        if now - self._last_cleanup < self._cleanup_interval:
+    def _cleanup(self, now: float, *, force: bool = False) -> None:
+        if not force and now - self._last_cleanup < self._cleanup_interval:
             return
         # Without this pass, one-off client IDs would stay in memory forever.
         expired: list[str] = []
@@ -52,13 +61,22 @@ class SlidingWindowLimiter:
     def allow(self, key: str, limit: int, window_seconds: int) -> bool:
         if not key:
             raise ValueError("key must not be empty")
-        if limit < 1 or window_seconds < 1:
+        if (
+            type(limit) is not int
+            or type(window_seconds) is not int
+            or limit < 1
+            or window_seconds < 1
+        ):
             raise ValueError("limit and window_seconds must be positive")
-        now = self._clock()
         with self._lock:
+            now = self._clock()
             self._cleanup(now)
             window = self._windows.get(key)
             if window is None:
+                if len(self._windows) >= self._max_keys:
+                    self._cleanup(now, force=True)
+                if len(self._windows) >= self._max_keys:
+                    return False
                 window = _Window(events=deque(), seconds=window_seconds)
                 self._windows[key] = window
             elif window.seconds != window_seconds:

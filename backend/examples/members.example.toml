@@ -1,0 +1,6 @@
+[members]
+session_seconds = 3600
+max_sessions = 5
+attempts_per_client = 20
+attempts_per_account = 5
+rate_window_seconds = 60

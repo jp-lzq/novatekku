@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from math import isfinite, sqrt
+from math import isfinite
+from statistics import fmean, pstdev
 from zoneinfo import ZoneInfo
-
 
 TOKYO = ZoneInfo("Asia/Tokyo")
 VALID_INTERVALS = frozenset({"1h", "1d", "1w"})
@@ -105,21 +105,12 @@ def bollinger(
     numbers = _finite_values(values)
     upper: list[float | None] = [None] * len(numbers)
     lower: list[float | None] = [None] * len(numbers)
-    window_sum = 0.0
-    window_squares = 0.0
-    for index, value in enumerate(numbers):
-        window_sum += value
-        window_squares += value * value
-        if index >= period:
-            removed = numbers[index - period]
-            window_sum -= removed
-            window_squares -= removed * removed
-        if index + 1 >= period:
-            average = window_sum / period
-            variance = max((window_squares / period) - (average * average), 0.0)
-            deviation = sqrt(variance) * deviations
-            upper[index] = average + deviation
-            lower[index] = average - deviation
+    for index in range(period - 1, len(numbers)):
+        window = numbers[index - period + 1 : index + 1]
+        average = fmean(window)
+        deviation = pstdev(window) * deviations
+        upper[index] = average + deviation
+        lower[index] = average - deviation
     return upper, lower
 
 
@@ -157,7 +148,10 @@ def macd(values: list[float]) -> tuple[list[float], list[float], list[float]]:
     numbers = _finite_values(values)
     fast = ema(numbers, 12)
     slow = ema(numbers, 26)
-    line = [fast_value - slow_value for fast_value, slow_value in zip(fast, slow, strict=True)]
+    line = [
+        fast_value - slow_value
+        for fast_value, slow_value in zip(fast, slow, strict=True)
+    ]
     signal = ema(line, 9)
     histogram = [
         line_value - signal_value
