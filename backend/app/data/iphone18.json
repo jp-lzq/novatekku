@@ -1,0 +1,24 @@
+{
+  "verified_at": "2026-09-11",
+  "announcement_date": "2026-09-09",
+  "preorder_at": "2026-09-12T21:00:00+09:00",
+  "release_date": "2026-09-18",
+  "region": "JP",
+  "currency": "JPY",
+  "tax_included": true,
+  "sources": [
+    "https://www.apple.com/jp/newsroom/2026/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/",
+    "https://www.apple.com/jp/shop/buy-iphone/iphone-18-pro",
+    "https://www.apple.com.cn/iphone-18-pro/specs/"
+  ],
+  "colors": [
+    {"code": "black", "ja": "ブラック", "en": "Black", "zh": "黑色", "aliases": ["黒", "黑"]},
+    {"code": "silver", "ja": "シルバー", "en": "Silver", "zh": "银色", "aliases": ["銀", "银"]},
+    {"code": "glacier", "ja": "グレイシャー", "en": "Glacier", "zh": "冰川蓝色", "aliases": ["glacier blue", "冰川蓝", "冰川藍", "グレイシャーブルー"]},
+    {"code": "burgundy", "ja": "バーガンディ", "en": "Burgundy", "zh": "勃艮第酒红色", "aliases": ["バーガンディー", "酒红", "酒紅", "勃艮第", "dark red"]}
+  ],
+  "models": [
+    {"name": "iPhone 18 Pro", "retail_prices": {"256": 219800, "512": 254800, "1TB": 324800, "2TB": 429800}},
+    {"name": "iPhone 18 Pro Max", "retail_prices": {"256": 239800, "512": 274800, "1TB": 344800, "2TB": 449800}}
+  ]
+}

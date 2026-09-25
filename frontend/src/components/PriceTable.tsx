@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ChevronRight, X } from 'lucide-react'
 import { apiGet } from '../lib/api'
+import { usePriceCatalog, type CatalogProduct } from '../lib/priceCatalog'
 import { useI18n } from '../i18n'
 // import MiniKLine from './MiniKLine'
 
@@ -16,14 +17,6 @@ interface Store {
   is_sponsored?: boolean
 }
 
-interface Product {
-  id: number
-  name: string
-  model: string
-  capacity: string
-  retail_price: number | null
-}
-
 interface Price {
   id: number
   price: number
@@ -31,20 +24,12 @@ interface Price {
   price_change_percent: number
   scraped_at: string | null
   store: Store
-  product: Product
+  product: CatalogProduct
   profit: number | null
 }
 
-interface MarketSummary {
-  product_id: number
-  accepted_prices: Array<{
-    store_id: number
-    price: number
-  }>
-}
-
 interface GroupedProduct {
-  product: Product
+  product: CatalogProduct
   prices: Price[]
 }
 
@@ -123,7 +108,7 @@ function formatFxPrice(price: number, rate: number, symbol: string): string {
 }
 
 function getProfit(price: number, retailPrice: number | null): number | null {
-  if (retailPrice === null) return null
+  if (retailPrice == null) return null
   return price - retailPrice
 }
 
@@ -206,34 +191,32 @@ function ProductRow({
   const sortedPrices = [...item.prices].sort((a, b) => b.price - a.price)
   const bestPrice = sortedPrices[0]
   const retailPrice = item.product.retail_price
-  const profit = getProfit(bestPrice.price, retailPrice)
+  const profit = bestPrice ? getProfit(bestPrice.price, retailPrice) : null
 
   if (!item.product.capacity || item.product.capacity.trim() === '' || item.product.capacity === 'GB') {
     return null
   }
 
-  if (!bestPrice) {
-    return null
-  }
-
   return (
-    <div className="border-b border-slate-200 last:border-b-0">
+    <div data-product-id={item.product.id} className="border-b border-slate-200 last:border-b-0">
       <div className="flex items-center gap-2 px-3 py-3 sm:hidden">
         <Link to={`/product/${item.product.id}`} className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
             <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
               {formatCapacity(item.product.capacity)}
             </span>
-            <span className="whitespace-nowrap text-lg font-bold tabular-nums text-slate-950">{formatPrice(bestPrice.price)}</span>
+            <div className="text-right">
+              <p className="text-[10px] text-slate-500">{t('buybackPrice')}</p>
+              <span className="whitespace-nowrap text-lg font-bold tabular-nums text-slate-950">{bestPrice ? formatPrice(bestPrice.price) : '-'}</span>
+            </div>
           </div>
           <div className="mt-2 flex items-center justify-between gap-3 text-xs">
-            <span className="min-w-0 truncate font-medium text-slate-600">{bestPrice.store.name}</span>
-            {profit !== null && (
-              <span className={`shrink-0 font-semibold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                {formatSignedPrice(profit)}
-              </span>
-            )}
+            <span className="min-w-0 text-slate-500">{t('retailLabel')} <span className="whitespace-nowrap font-medium text-slate-700">{retailPrice != null ? formatPrice(retailPrice) : '-'}</span></span>
+            <span className={`shrink-0 font-semibold ${profit === null ? 'text-slate-400' : profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {t('profit')} {profit === null ? '-' : formatSignedPrice(profit)}
+            </span>
           </div>
+          <p className="mt-1 truncate text-xs text-slate-500">{bestPrice?.store.name ?? '-'}</p>
         </Link>
         <button
           type="button"
@@ -245,36 +228,32 @@ function ProductRow({
         </button>
       </div>
 
-      <div className="hidden w-full items-stretch gap-2 px-4 py-3 transition-colors hover:bg-slate-50 sm:grid sm:grid-cols-[minmax(0,1fr)_96px] sm:gap-3">
+      <div className="hidden w-full items-stretch gap-3 px-4 py-3 transition-colors hover:bg-slate-50 sm:grid sm:grid-cols-[minmax(0,1fr)_64px]">
         <Link
           to={`/product/${item.product.id}`}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left sm:grid sm:grid-cols-[100px_1fr_100px] sm:gap-4"
+          className="grid min-w-0 items-center gap-3 text-left grid-cols-[60px_110px_minmax(100px,1fr)_90px] lg:grid-cols-[80px_140px_minmax(0,1fr)_140px]"
         >
           <div className="min-w-0">
             <p className="text-sm font-medium text-slate-900">{formatCapacity(item.product.capacity)}</p>
-            {retailPrice !== null && (
-              <p className="text-xs text-slate-500 mt-0.5">
-                {t('retailLabel')} {formatPrice(retailPrice)}
-              </p>
-            )}
           </div>
+          <p className="whitespace-nowrap text-sm font-medium tabular-nums text-slate-700">{retailPrice != null ? formatPrice(retailPrice) : '-'}</p>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-lg font-semibold text-slate-900">{formatPrice(bestPrice.price)}</p>
+              <p className="whitespace-nowrap text-lg font-semibold text-slate-900">{bestPrice ? formatPrice(bestPrice.price) : '-'}</p>
               {profit !== null && (
                 <p className={`text-xs font-medium ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   ({formatSignedPrice(profit)})
                 </p>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            {bestPrice && <p className="text-xs text-slate-500 mt-0.5">
               {Object.entries(fxRates)
                 .map(([currency, data]) => `${currency} ${formatFxPrice(bestPrice.price, data.rate, data.symbol)}`)
                 .join(' / ')}
-            </p>
+            </p>}
           </div>
           <div className="min-w-0 text-center">
-            <p className="text-sm text-slate-600">{bestPrice.store.name}</p>
+            <p className="break-words text-sm text-slate-600">{bestPrice?.store.name ?? '-'}</p>
           </div>
         </Link>
         <button
@@ -296,7 +275,7 @@ function ProductPriceModal({
   item: GroupedProduct | null
   onClose: () => void
 }) {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   useEffect(() => {
     if (!item) return
 
@@ -339,7 +318,8 @@ function ProductPriceModal({
             <h3 id="price-modal-title" className="text-lg font-semibold text-slate-900 sm:text-xl">
               {item.product.model} {formatCapacity(item.product.capacity)}
             </h3>
-            <p className="mt-1 text-sm text-slate-500">{t('allStoresLatestPrices')}</p>
+            <p className="mt-1 text-sm text-slate-500">{t('retailLabel')} {retailPrice != null ? formatPrice(retailPrice) : '-'}</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">{item.product.colors?.map((color) => color[`name_${language}`]).join(' / ')}</p>
           </div>
           <button
             type="button"
@@ -352,6 +332,13 @@ function ProductPriceModal({
         </div>
 
         <div className="max-h-[calc(92dvh-80px)] overflow-y-auto sm:max-h-[calc(90vh-88px)]">
+          {sortedPrices.length === 0 && (
+            <div className="px-4 py-8 text-center sm:px-6">
+              <p className="text-sm text-slate-500">{t('buybackPrice')}</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">-</p>
+              <p className="mt-2 text-xs text-slate-500">{t('noBuybackQuote')}</p>
+            </div>
+          )}
           <div className="divide-y divide-slate-100 sm:hidden">
             {sortedPrices.map((price) => {
               const rowProfit = price.profit ?? getProfit(price.price, retailPrice)
@@ -368,7 +355,7 @@ function ProductPriceModal({
               )
             })}
           </div>
-          <div className="hidden overflow-x-auto px-4 py-4 sm:block sm:px-6">
+          <div className={`${sortedPrices.length === 0 ? 'hidden' : 'hidden sm:block'} overflow-x-auto px-4 py-4 sm:px-6`}>
             <table className="min-w-full table-auto text-left">
               <thead className="sticky top-0 bg-white">
                 <tr className="border-b border-slate-200 text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -446,10 +433,13 @@ function ModelSection({
       <div className="border-b border-slate-800 bg-slate-900 px-4 py-3">
         <h3 className="text-base font-semibold text-white">{title}</h3>
       </div>
-      <div className="hidden border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium uppercase tracking-wide text-slate-500 sm:grid sm:grid-cols-[120px_minmax(0,1fr)_180px_24px] sm:gap-4">
-        <span>{t('capacity')}</span>
-        <span>{t('topPriceRetailProfit')}</span>
-        <span>{t('store')}</span>
+      <div className="hidden border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium text-slate-500 sm:grid sm:grid-cols-[minmax(0,1fr)_64px] sm:gap-3">
+        <div className="grid grid-cols-[60px_110px_minmax(100px,1fr)_90px] gap-3 lg:grid-cols-[80px_140px_minmax(0,1fr)_140px]">
+          <span>{t('capacity')}</span>
+          <span>{t('retailLabel')}</span>
+          <span>{t('buybackPrice')} / {t('profit')}</span>
+          <span className="text-center">{t('store')}</span>
+        </div>
         <span />
       </div>
       <div>
@@ -465,6 +455,7 @@ export default function PriceTable() {
   const { language, t } = useI18n()
   const [selectedProduct, setSelectedProduct] = useState<GroupedProduct | null>(null)
   const [selectedFamily, setSelectedFamily] = useState<string>('all')
+  const { data: catalog, isLoading: catalogLoading } = usePriceCatalog()
 
   const { data: fxData } = useQuery<FxResponse>({
     queryKey: ['fx'],
@@ -479,18 +470,7 @@ export default function PriceTable() {
 
   const { data: prices, isLoading } = useQuery<Price[]>({
     queryKey: ['prices'],
-    queryFn: async () => {
-      const [rawPrices, market] = await Promise.all([
-        apiGet<Price[]>('/api/v1/prices', { params: { limit: 1000 } }),
-        apiGet<MarketSummary[]>('/api/v1/prices/market-average', { params: { limit: 300 } }),
-      ])
-      const accepted = new Set(
-        market.flatMap((summary) => summary.accepted_prices.map(
-          (price) => `${summary.product_id}:${price.store_id}:${price.price}`,
-        )),
-      )
-      return rawPrices.filter((price) => accepted.has(`${price.product.id}:${price.store.id}:${price.price}`))
-    },
+    queryFn: () => apiGet<Price[]>('/api/v1/prices', { params: { limit: 1000 } }),
     staleTime: 0,
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
@@ -505,7 +485,7 @@ export default function PriceTable() {
     refetchOnWindowFocus: true,
   })
 
-  if (isLoading) {
+  if (isLoading && catalogLoading) {
     return (
       <div className="flex h-40 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
@@ -513,7 +493,8 @@ export default function PriceTable() {
     )
   }
 
-  if (!prices || prices.length === 0) {
+  if (!prices?.length && !catalog?.products.length) {
+    if (isLoading || catalogLoading) return <div className="h-40" aria-busy="true" />
     return (
       <div className="rounded-lg border border-slate-200 bg-white px-4 py-12 text-center">
         <p className="text-sm text-slate-500">{t('noData')}</p>
@@ -521,17 +502,20 @@ export default function PriceTable() {
     )
   }
 
-  const grouped = prices.reduce((acc, price) => {
+  const grouped: Record<number, GroupedProduct> = {}
+  for (const product of catalog?.products ?? []) {
+    grouped[product.id] = { product, prices: [] }
+  }
+  for (const price of prices ?? []) {
     const productId = price.product.id
-    if (!acc[productId]) {
-      acc[productId] = {
+    if (!grouped[productId]) {
+      grouped[productId] = {
         product: price.product,
         prices: [],
       }
     }
-    acc[productId].prices.push(price)
-    return acc
-  }, {} as Record<number, GroupedProduct>)
+    grouped[productId].prices.push(price)
+  }
 
   const sections = buildModelSections(Object.values(grouped))
   const families = Array.from(new Set(sections.map((section) => section.family))).sort(

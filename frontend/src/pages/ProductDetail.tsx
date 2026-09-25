@@ -2,20 +2,10 @@ import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { TrendingUp } from 'lucide-react'
 import { apiGet } from '../lib/api'
+import { usePriceCatalog, type CatalogProduct as Product } from '../lib/priceCatalog'
 import { useI18n } from '../i18n'
 import ProfessionalKLineChart from '../components/ProfessionalKLineChart'
 import { LightPage, PageHeader, lightPanelClass } from '../components/PageChrome'
-
-interface Product {
-  id: number
-  name: string
-  model: string
-  capacity: string
-  color: string
-  carrier: string
-  image_url: string | null
-  retail_price: number | null
-}
 
 interface Store {
   id: number
@@ -33,13 +23,6 @@ interface PriceWithStore {
   product?: Product
   profit: number | null
   profit_percent: number | null
-}
-
-interface MarketSummary {
-  accepted_prices: Array<{
-    store_id: number
-    price: number
-  }>
 }
 
 function formatPrice(price: number): string {
@@ -61,28 +44,24 @@ export default function ProductDetail() {
   const { language, t } = useI18n()
   const { id } = useParams<{ id: string }>()
   const productId = Number(id)
+  const { data: catalog, isLoading: catalogLoading } = usePriceCatalog()
 
-  const { data: prices } = useQuery<PriceWithStore[]>({
+  const { data: prices, isLoading: pricesLoading } = useQuery<PriceWithStore[]>({
     queryKey: ['product-prices', productId],
-    queryFn: async () => {
-      const [rawPrices, market] = await Promise.all([
-        apiGet<PriceWithStore[]>(`/api/v1/prices/latest/${productId}`),
-        apiGet<MarketSummary>(`/api/v1/prices/market-average/${productId}`),
-      ])
-      const accepted = new Set(market.accepted_prices.map((price) => `${price.store_id}:${price.price}`))
-      return rawPrices.filter((price) => accepted.has(`${price.store.id}:${price.price}`))
-    },
+    queryFn: () => apiGet<PriceWithStore[]>(`/api/v1/prices/latest/${productId}`),
   })
 
   const bestPrice = prices?.[0]
-  const product = bestPrice?.product
+  const catalogProduct = catalog?.products.find((row) => row.id === productId)
+  const product = catalogProduct ? { ...bestPrice?.product, ...catalogProduct } : bestPrice?.product
 
   return (
     <LightPage>
       <PageHeader title={product?.model ?? t('priceDetails')} backTo="/prices" />
 
       <main className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-8">
-        {product && bestPrice && (
+        {!product && <p className="py-12 text-center text-sm text-slate-500" aria-busy={catalogLoading || pricesLoading}>{catalogLoading || pricesLoading ? '-' : t('noData')}</p>}
+        {product && (
           <>
             <section className={`mb-4 overflow-hidden p-5 sm:mb-6 sm:p-8 ${lightPanelClass}`}>
               <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
@@ -102,25 +81,21 @@ export default function ProductDetail() {
                     <p className="text-[10px] font-semibold tracking-[0.18em] text-violet-600">NOVA PRICE DATA</p>
                     <h1 className="mt-2 break-words text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">{product.model}</h1>
                     <p className="mt-1 break-words text-sm text-slate-600 sm:text-base">
-                      {product.capacity}
-                      {t('conditionSeparator')}
-                      {product.color}
-                      {t('conditionSeparator')}
-                      {product.carrier}
+                      {[/^\d+$/.test(product.capacity) ? `${product.capacity}GB` : product.capacity, product.color, product.carrier].filter(Boolean).join(' / ')}
                     </p>
-                    {product.retail_price && (
-                      <p className="mt-2 text-sm text-slate-500">
-                        {t('newRetailPrice')}: ¥{product.retail_price.toLocaleString()}
-                      </p>
-                    )}
+                    <p className="mt-2 text-sm text-slate-500">
+                      {t('retailLabel')}: {product.retail_price != null ? formatPrice(product.retail_price) : '-'}
+                    </p>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">{product.colors?.map((color) => color[`name_${language}`]).join(' / ')}</p>
                   </div>
                 </div>
 
                 <div className="min-w-0 rounded-xl border border-emerald-200 bg-emerald-50/70 p-5 text-left md:min-w-64 md:text-right">
                   <p className="text-xs font-semibold tracking-wide text-emerald-700">{t('bestBuybackPrice')}</p>
-                  <p className="mt-2 break-words text-3xl font-semibold tracking-tight text-emerald-700 sm:text-4xl">¥{bestPrice.price.toLocaleString()}</p>
-                  <p className="mt-1 truncate text-sm font-medium text-slate-600">{bestPrice.store.name}</p>
-                  {bestPrice.profit !== null && bestPrice.profit > 0 && (
+                  <p className="mt-2 break-words text-3xl font-semibold tracking-tight text-emerald-700 sm:text-4xl">{bestPrice ? formatPrice(bestPrice.price) : '-'}</p>
+                  <p className="mt-1 truncate text-sm font-medium text-slate-600">{bestPrice?.store.name ?? '-'}</p>
+                  {!bestPrice && <p className="mt-2 text-xs text-slate-500">{t('noBuybackQuote')}</p>}
+                  {bestPrice && bestPrice.profit !== null && bestPrice.profit > 0 && (
                     <p className="mt-1 text-sm text-emerald-700">
                       {t('profit')} ¥{bestPrice.profit.toLocaleString()}
                     </p>
@@ -134,6 +109,7 @@ export default function ProductDetail() {
                 <h2 className="text-lg font-semibold text-slate-950 sm:text-xl">{t('byStorePrices')}</h2>
               </div>
 
+              {!prices?.length && <div className="px-5 py-8 text-center text-sm text-slate-500"><p className="text-xl">-</p><p className="mt-2">{t('noBuybackQuote')}</p></div>}
               <div className="grid gap-3 p-3 sm:hidden">
                 {prices?.map((price) => {
                   const profit = price.profit ?? (product.retail_price !== null ? price.price - product.retail_price : null)
@@ -166,7 +142,7 @@ export default function ProductDetail() {
                 })}
               </div>
 
-              <div className="hidden overflow-x-auto px-5 py-4 sm:block sm:px-7">
+              <div className={`${prices?.length ? 'hidden sm:block' : 'hidden'} overflow-x-auto px-5 py-4 sm:px-7`}>
                 <table className="min-w-full table-auto text-left">
                   <thead className="bg-white">
                     <tr className="border-b border-slate-200 text-xs font-medium uppercase tracking-wide text-slate-500">

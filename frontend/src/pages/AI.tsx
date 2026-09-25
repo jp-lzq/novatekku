@@ -34,7 +34,7 @@ const COPY: Record<Language, {
       'How do I move data from Android to iPhone?',
     ],
     databaseNote: 'Price answers use NOVA local market data.',
-    dataScale: '10M+ latest records · 50M+ historical records (2020–2025)',
+    dataScale: 'Latest data: 10M+ records · Historical data: 50M+ records (2020–2025)',
   },
   zh: {
     eyebrow: '手机知识与价格智能',
@@ -46,7 +46,7 @@ const COPY: Record<Language, {
       '安卓手机怎么把数据转到 iPhone？',
     ],
     databaseNote: '价格回答使用 NOVA 本地市场数据。',
-    dataScale: '1000万+ 最新数据 · 5000万+ 历史数据（2020–2025）',
+    dataScale: '最新数据记录数：1000万条+ · 历史数据记录数：5000万条+（2020–2025）',
   },
   ja: {
     eyebrow: 'スマートフォンと価格インテリジェンス',
@@ -58,7 +58,7 @@ const COPY: Record<Language, {
       'AndroidからiPhoneへデータを移す方法は？',
     ],
     databaseNote: '価格の回答にはNOVAのローカル市場データを使用します。',
-    dataScale: '1,000万件+ 最新データ · 5,000万件+ 価格履歴（2020–2025）',
+    dataScale: '最新データ収録件数：1,000万件+ · 履歴データ収録件数：5,000万件+（2020–2025）',
   },
 }
 

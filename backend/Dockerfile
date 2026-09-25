@@ -1,4 +1,4 @@
-FROM python:3.11-slim@sha256:9c900dea9e8fb7e16277c179b555cc72d29a352dbc33cff48ad5a0412fd5bfc7
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -7,6 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN apt-get update \
     && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system --gid 10001 app \
@@ -14,10 +15,10 @@ RUN groupadd --system --gid 10001 app \
 
 WORKDIR /app
 
-COPY requirements.lock ./
+COPY requirements.txt ./
 RUN python -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools "wheel>=0.46.2" \
-    && /opt/venv/bin/pip install --no-cache-dir -r requirements.lock \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip setuptools "wheel>=0.46.2" "jaraco.context>=6.1.0" \
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt \
     && rm -rf \
         /opt/venv/bin/pip* \
         /opt/venv/lib/python3.11/site-packages/pip \
@@ -34,12 +35,15 @@ RUN python -m venv /opt/venv \
         /usr/local/lib/python3.11/site-packages/wheel \
         /usr/local/lib/python3.11/site-packages/wheel-*.dist-info
 
-COPY --chown=app:app app ./app
+COPY --chown=app:app . .
+RUN mkdir -p /var/lib/nova /home/app/.cache /home/app/.config /home/app/.local \
+    && chown -R app:app /var/lib/nova /home/app /app
 
 USER 10001:10001
+
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"]
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

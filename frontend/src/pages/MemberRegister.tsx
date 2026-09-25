@@ -1,9 +1,9 @@
 import { FormEvent, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, CheckCircle2, KeyRound, Mail, UserRound } from 'lucide-react'
 import { apiPost } from '../lib/api'
-import { publicMemberAuthEnabled } from '../lib/memberAuth'
+import { getMemberAuthStatus, memberAuthStatusQueryKey } from '../lib/memberAuth'
 import { type MemberProfile } from '../lib/member'
 import { useI18n } from '../i18n'
 import { LightPage, PageHeader, lightPanelClass } from '../components/PageChrome'
@@ -30,8 +30,14 @@ export default function MemberRegister() {
   const [member, setMember] = useState<MemberProfile | null>(null)
   const [errorKey, setErrorKey] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const authStatus = useQuery({
+    queryKey: memberAuthStatusQueryKey,
+    queryFn: getMemberAuthStatus,
+    staleTime: 15_000,
+    retry: false,
+  })
 
-  if (!publicMemberAuthEnabled) {
+  if (authStatus.data?.enabled === false) {
     return (
       <LightPage>
         <PageHeader title={t('memberRegisterNav')} />
@@ -71,6 +77,9 @@ export default function MemberRegister() {
       setPassword('')
       setPasswordConfirm('')
     } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 503) {
+        queryClient.setQueryData(memberAuthStatusQueryKey, { enabled: false })
+      }
       setErrorKey(getErrorKey(error))
     } finally {
       setIsSubmitting(false)

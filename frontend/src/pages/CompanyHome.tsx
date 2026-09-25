@@ -29,8 +29,8 @@ const COMPANY_COPY: Record<Language, CompanyCopy> = {
     productTitle: 'NOVA AI',
     productLead: 'Live iPhone buyback intelligence, powered by local price data and natural conversation.',
     signalLabel: 'LIVE PRICE SIGNAL',
-    latestRecordsLabel: 'LATEST PRICE DATA',
-    historyRecordsLabel: 'PRICE HISTORY · 2020–2025',
+    latestRecordsLabel: 'LATEST DATA RECORDS',
+    historyRecordsLabel: 'HISTORICAL DATA RECORDS · 2020–2025',
     latestRecordsValue: '10M+',
     historyRecordsValue: '50M+',
     capabilities: [
@@ -49,8 +49,8 @@ const COMPANY_COPY: Record<Language, CompanyCopy> = {
     productTitle: 'NOVA AI',
     productLead: '结合本地价格数据与自然对话，实时分析 iPhone 回收市场。',
     signalLabel: '实时价格信号',
-    latestRecordsLabel: '最新价格数据',
-    historyRecordsLabel: '历史价格数据 · 2020–2025',
+    latestRecordsLabel: '最新数据记录数',
+    historyRecordsLabel: '历史数据记录数 · 2020–2025',
     latestRecordsValue: '1000万+',
     historyRecordsValue: '5000万+',
     capabilities: [
@@ -69,8 +69,8 @@ const COMPANY_COPY: Record<Language, CompanyCopy> = {
     productTitle: 'NOVA AI',
     productLead: 'ローカル価格データと自然な対話を組み合わせた、iPhone買取市場のリアルタイムAIです。',
     signalLabel: 'リアルタイム価格シグナル',
-    latestRecordsLabel: '最新価格データ',
-    historyRecordsLabel: '価格履歴 · 2020–2025',
+    latestRecordsLabel: '最新データ収録件数',
+    historyRecordsLabel: '履歴データ収録件数 · 2020–2025',
     latestRecordsValue: '1,000万+',
     historyRecordsValue: '5,000万+',
     capabilities: [

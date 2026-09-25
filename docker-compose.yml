@@ -1,0 +1,70 @@
+version: '3.8'
+
+# NOVA買取サイト - ローカル開発環境用Docker Compose設定
+# 価格収集と AI コアは別リポジトリのため、ここでは起動しない。
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: nova-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-nova_kaitori}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: nova-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  # Creates tables and rebuilds the price index: docker compose run --rm migrate
+  migrate:
+    build: ./backend
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-app_user}:${POSTGRES_PASSWORD:-change_me}@db:5432/${POSTGRES_DB:-nova_kaitori}
+    depends_on:
+      - db
+    profiles: ["tools"]
+    command: python -m app.db.migrate
+
+  backend:
+    build: ./backend
+    container_name: nova-backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-app_user}:${POSTGRES_PASSWORD:-change_me}@db:5432/${POSTGRES_DB:-nova_kaitori}
+      - REDIS_URL=redis://redis:6379/0
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build: ./frontend
+    container_name: nova-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - VITE_API_URL=https://novakai.net/api
+    # 本番モードで動作
+
+volumes:
+  postgres_data:
+    name: nova_postgres_data

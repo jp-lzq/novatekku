@@ -28,12 +28,14 @@ const LEGAL_CONTENT: Record<Language, Record<string, LegalContent>> = {
         },
         {
           heading: 'Basic Information',
-          body: [
-            'Address: Musashino Building, 2-13-10 Shinjuku, Shinjuku-ku, Tokyo',
-            'Business: Data and AI product development',
-            'Corporate Number: 0111-01-110714',
-            'Capital: JPY 6,000,000',
-            'Founded: February 17, 2025',
+          body: [],
+          details: [
+            { label: 'Company', value: 'Novatech Co., Ltd.' },
+            { label: 'Head Office', value: 'Musashino Building, 2-13-10 Shinjuku, Shinjuku-ku, Tokyo' },
+            { label: 'Business', value: 'Planning, development, and operation of data and AI products' },
+            { label: 'Corporate No.', value: '0111-01-110714' },
+            { label: 'Capital', value: 'JPY 6,000,000' },
+            { label: 'Established', value: 'February 17, 2025' },
           ],
         },
         {
@@ -130,12 +132,14 @@ const LEGAL_CONTENT: Record<Language, Record<string, LegalContent>> = {
         },
         {
           heading: '基本信息',
-          body: [
-            '所在地：东京都新宿区新宿2丁目13番10号 武藏野大楼',
-            '事业内容：数据与 AI 产品开发',
-            '法人番号：０１１１－０１－１１０７１４',
-            '资本金：金６００万円',
-            '成立年月日：令和７年２月１７日',
+          body: [],
+          details: [
+            { label: '公司名称', value: '诺瓦科技株式会社' },
+            { label: '公司所在地', value: '东京都新宿区新宿2丁目13番10号 武藏野大楼' },
+            { label: '业务内容', value: '数据与 AI 产品的策划、开发及运营' },
+            { label: '法人编号', value: '0111-01-110714' },
+            { label: '注册资本', value: '600万日元' },
+            { label: '成立日期', value: '2025年2月17日' },
           ],
         },
         {
@@ -232,12 +236,14 @@ const LEGAL_CONTENT: Record<Language, Record<string, LegalContent>> = {
         },
         {
           heading: '基本情報',
-          body: [
-            '所在地：東京都新宿区新宿2丁目13番10号 武蔵野ビル',
-            '事業内容：データ・AIプロダクト開発',
-            '法人番号：０１１１－０１－１１０７１４',
-            '資本金：金６００万円',
-            '成立年月日：令和７年２月１７日',
+          body: [],
+          details: [
+            { label: '会社名', value: 'ノーヴァテック株式会社' },
+            { label: '所在地', value: '東京都新宿区新宿2丁目13番10号 武蔵野ビル' },
+            { label: '事業内容', value: 'データ・AIプロダクトの企画、開発、運営' },
+            { label: '会社法人等番号', value: '0111-01-110714' },
+            { label: '資本金', value: '600万円' },
+            { label: '設立', value: '2025年2月17日' },
           ],
         },
         {

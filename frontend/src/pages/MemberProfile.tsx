@@ -198,7 +198,7 @@ export default function MemberProfile() {
       <LightPage>
         <PageHeader title={t('memberMyPageNav')} />
         <main className="mx-auto max-w-4xl px-3 py-4 sm:px-4 sm:py-10">
-          <section className={`border-t-2 border-t-violet-500 px-5 py-8 text-center sm:px-8 ${lightPanelClass}`}>
+          <section className={'border-t-2 border-t-violet-500 px-5 py-8 text-center sm:px-8 ' + lightPanelClass}>
             <p className="text-lg font-semibold text-slate-950">{t('memberProfileEmptyTitle')}</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">{t('memberProfileEmptyDescription')}</p>
             <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
@@ -226,7 +226,7 @@ export default function MemberProfile() {
       <PageHeader title={t('memberMyPageNav')} />
 
       <main className="mx-auto max-w-5xl px-3 py-4 sm:px-4 sm:py-10">
-        <section className={`border-t-2 border-t-violet-500 p-5 sm:p-8 ${lightPanelClass}`}>
+        <section className={'border-t-2 border-t-violet-500 p-5 sm:p-8 ' + lightPanelClass}>
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-950 text-white">
@@ -456,7 +456,7 @@ export default function MemberProfile() {
 
         <section className="mt-6 grid gap-4 md:grid-cols-3">
           {futureItems.map((item) => (
-            <article key={item.title} className={`p-5 ${lightPanelClass}`}>
+            <article key={item.title} className={'p-5 ' + lightPanelClass}>
               <div className="flex items-center justify-between gap-3">
                 <item.icon className="h-5 w-5 text-slate-500" />
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
