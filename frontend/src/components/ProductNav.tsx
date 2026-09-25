@@ -3,7 +3,7 @@ import { ClipboardCheck, LogIn, Store, Tags, UserPlus } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import { useI18n, type Language } from '../i18n'
 import { getCurrentMember } from '../lib/member'
-import { publicMemberAuthEnabled } from '../lib/memberAuth'
+import { getMemberAuthStatus, memberAuthStatusQueryKey } from '../lib/memberAuth'
 
 const COPY: Record<Language, {
   assessment: string
@@ -25,6 +25,12 @@ export default function ProductNav() {
     queryKey: ['current-member'],
     queryFn: getCurrentMember,
     staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
+  const authStatus = useQuery({
+    queryKey: memberAuthStatusQueryKey,
+    queryFn: getMemberAuthStatus,
+    staleTime: 15_000,
     retry: false,
   })
 
@@ -52,7 +58,7 @@ export default function ProductNav() {
           <span className="hidden text-sm font-semibold tracking-[0.16em] sm:block">NOVA AI</span>
         </a>
 
-        <nav className="ml-1 hidden items-center sm:ml-6 sm:flex sm:gap-2">
+        <nav className="ml-6 hidden items-center gap-2 lg:flex">
           <Link to="/assessment" className={navClass('/assessment', true)}>
             <ClipboardCheck className="h-4 w-4" />
             {copy.assessment}
@@ -95,7 +101,7 @@ export default function ProductNav() {
                 <LogIn className="hidden h-4 w-4 sm:block" />
                 {copy.login}
               </Link>
-              {publicMemberAuthEnabled && (
+              {authStatus.data?.enabled !== false && (
                 <Link to="/members/register" className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-slate-950 px-2.5 text-[11px] font-semibold text-white transition-colors hover:bg-slate-800 sm:px-4 sm:text-sm">
                   <UserPlus className="hidden h-4 w-4 sm:block" />
                   {copy.register}
@@ -106,7 +112,7 @@ export default function ProductNav() {
         </div>
       </div>
 
-      <nav className="grid grid-cols-3 border-t border-slate-100 bg-white px-3 sm:hidden">
+      <nav className="grid grid-cols-3 border-t border-slate-100 bg-white px-3 lg:hidden">
         <Link to="/assessment" className={mobileClass('/assessment')}>
           <ClipboardCheck className="h-3.5 w-3.5" />
           {copy.assessment}

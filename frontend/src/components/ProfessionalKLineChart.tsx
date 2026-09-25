@@ -1,5 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import {
+  CandlestickSeries,
+  ColorType,
+  CrosshairMode,
+  HistogramSeries,
+  LineSeries,
+  LineStyle,
+  createChart,
+  type UTCTimestamp,
+} from 'lightweight-charts'
 import { apiGet } from '../lib/api'
 import type { Language } from '../i18n'
 
@@ -12,9 +22,13 @@ interface Candle {
   high: number
   low: number
   close: number
+  average: number
   best_store: string | null
   sample_count: number
+  raw_sample_count: number
   store_count: number
+  raw_store_count: number
+  filtered_store_count: number
 }
 
 interface StorePoint {
@@ -35,11 +49,17 @@ interface IndicatorPoint {
   value: number
 }
 
+interface AveragePoint extends IndicatorPoint {
+  label: string
+  store_count: number
+}
+
 interface AdvancedKLineResponse {
   product_id: number
   interval: Interval
   days: number
   candles: Candle[]
+  average_series: AveragePoint[]
   store_series: StoreSeries[]
   indicators: {
     sma7: IndicatorPoint[]
@@ -53,14 +73,18 @@ interface AdvancedKLineResponse {
   }
   summary: {
     latest_close: number | null
+    latest_average: number | null
+    latest_filtered_store_count: number
     change: number
     change_percent: number
     high: number | null
     low: number | null
     store_count: number
     sample_count: number
+    raw_sample_count: number
     data_points: number
     filtered_points: number
+    filtered_store_points: number
   }
 }
 
@@ -110,76 +134,70 @@ const STORE_COLORS = [
 
 const TEXT: Record<Language, Record<string, string>> = {
   ja: {
-    title: 'プロ仕様 価格K線',
-    subtitle: '商品全体の価格推移と店舗別ラインを同一チャートで表示',
+    title: 'TradingView 価格K線',
+    subtitle: '相場から大きく外れた店舗を除外し、有効な価格推移を高速表示',
     intervalHour: '1時間',
     intervalDay: '日足',
     intervalWeek: '週足',
     storeLines: '店舗ライン',
-    movingAverage: 'SMA',
+    movingAverage: '移動平均 (SMA)',
     bollinger: 'BB',
-    latest: '現在値',
     change: '変動',
     high: '高値',
     low: '安値',
-    stores: '店舗',
+    stores: '有効店舗',
     points: 'データ',
     loading: '読み込み中...',
     noData: '履歴データがありません',
-    open: '始値',
-    close: '終値',
     bestStore: '最高値店舗',
     samples: '取得数',
     indicators: 'テクニカル指標',
-    aggregate: '全店舗集計K線',
+    effectiveAverage: '有効平均値',
+    excluded: '除外店舗',
   },
   zh: {
-    title: '专业价格K线',
-    subtitle: '商品整体价格与各店铺价格线同屏显示',
+    title: 'TradingView 价格K线',
+    subtitle: '排除明显偏离市场的店铺，快速显示有效价格走势',
     intervalHour: '小时K',
     intervalDay: '日K',
     intervalWeek: '周K',
     storeLines: '店铺线',
-    movingAverage: 'SMA',
+    movingAverage: '移动平均 (SMA)',
     bollinger: 'BB',
-    latest: '当前价',
     change: '变动',
     high: '高点',
     low: '低点',
-    stores: '店铺',
+    stores: '有效店铺',
     points: '数据',
     loading: '载入中...',
     noData: '没有历史数据',
-    open: '开盘',
-    close: '收盘',
     bestStore: '最高价店铺',
     samples: '采样',
     indicators: '技术指标',
-    aggregate: '全店铺聚合K线',
+    effectiveAverage: '有效均价',
+    excluded: '排除店铺',
   },
   en: {
-    title: 'Professional Price K-Line',
-    subtitle: 'Aggregate product candles and store lines on one chart',
+    title: 'TradingView Price K-Line',
+    subtitle: 'Fast valid-price chart with clear market outliers excluded',
     intervalHour: '1H',
     intervalDay: '1D',
     intervalWeek: '1W',
     storeLines: 'Store Lines',
-    movingAverage: 'SMA',
+    movingAverage: 'Moving average (SMA)',
     bollinger: 'BB',
-    latest: 'Latest',
     change: 'Change',
     high: 'High',
     low: 'Low',
-    stores: 'Stores',
+    stores: 'Valid stores',
     points: 'Points',
     loading: 'Loading...',
     noData: 'No history data',
-    open: 'Open',
-    close: 'Close',
     bestStore: 'Best store',
     samples: 'Samples',
     indicators: 'Indicators',
-    aggregate: 'Aggregate candles',
+    effectiveAverage: 'Valid average',
+    excluded: 'Excluded stores',
   },
 }
 
@@ -192,22 +210,21 @@ function formatPrice(value: number | null | undefined) {
   return `¥${Math.round(value).toLocaleString()}`
 }
 
-function formatCompactPrice(value: number) {
-  return `¥${Math.round(value / 1000)}k`
-}
-
 function formatChange(value: number, percent: number) {
   if (!value) return '0'
   const sign = value > 0 ? '+' : '-'
   return `${sign}¥${Math.abs(Math.round(value)).toLocaleString()} (${sign}${Math.abs(percent).toFixed(2)}%)`
 }
 
-function pathFromPoints(points: Array<{ x: number; y: number }>) {
-  return points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ')
+function toChartTime(value: string): UTCTimestamp {
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00+09:00` : value
+  return Math.floor(Date.parse(normalized) / 1000) as UTCTimestamp
 }
 
-function valueMap(points: IndicatorPoint[] | undefined) {
-  return new Map((points ?? []).map((point) => [point.time, point.value]))
+function chartLocale(language: Language) {
+  if (language === 'zh') return 'zh-CN'
+  if (language === 'en') return 'en-US'
+  return 'ja-JP'
 }
 
 export default function ProfessionalKLineChart({ productId, language }: ProfessionalKLineChartProps) {
@@ -215,10 +232,11 @@ export default function ProfessionalKLineChart({ productId, language }: Professi
   const [interval, setInterval] = useState<Interval>('1d')
   const [days, setDays] = useState(INTERVAL_DEFAULT_DAYS['1d'])
   const [showStores, setShowStores] = useState(true)
-  const [showAverage, setShowAverage] = useState(true)
+  const [showEffectiveAverage, setShowEffectiveAverage] = useState(true)
+  const [showMovingAverage, setShowMovingAverage] = useState(true)
   const [showBollinger, setShowBollinger] = useState(true)
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
-  const chartScrollerRef = useRef<HTMLDivElement | null>(null)
+  const [hoveredCandle, setHoveredCandle] = useState<Candle | null>(null)
+  const chartContainerRef = useRef<HTMLDivElement | null>(null)
 
   const { data, isLoading } = useQuery<AdvancedKLineResponse>({
     queryKey: ['price-kline-advanced', productId, interval, days],
@@ -230,131 +248,199 @@ export default function ProfessionalKLineChart({ productId, language }: Professi
     staleTime: 1000 * 60 * 5,
   })
 
-  const chart = useMemo(() => {
-    const candles = data?.candles ?? []
-    if (candles.length === 0) return null
-
-    const left = 58
-    const right = 64
-    const top = 28
-    const mainHeight = 314
-    const indicatorGap = 34
-    const rsiTop = top + mainHeight + indicatorGap
-    const indicatorHeight = 72
-    const macdTop = rsiTop + indicatorHeight + 34
-    const width = 1120 - left - right
-    const timeToIndex = new Map(candles.map((candle, index) => [candle.time, index]))
-    const xForIndex = (index: number) => {
-      if (candles.length === 1) return left + width / 2
-      return left + (index / (candles.length - 1)) * width
-    }
-
-    const priceValues = [
-      ...candles.flatMap((candle) => [candle.high, candle.low, candle.open, candle.close]),
-      ...(data?.store_series ?? []).flatMap((series) => series.points.map((point) => point.price)),
-      ...(data?.indicators.sma7 ?? []).map((point) => point.value),
-      ...(data?.indicators.sma25 ?? []).map((point) => point.value),
-      ...(data?.indicators.bb_upper ?? []).map((point) => point.value),
-      ...(data?.indicators.bb_lower ?? []).map((point) => point.value),
-    ].filter((value) => Number.isFinite(value))
-
-    const rawMin = Math.min(...priceValues)
-    const rawMax = Math.max(...priceValues)
-    const padding = Math.max((rawMax - rawMin) * 0.12, 5000)
-    const min = rawMin - padding
-    const max = rawMax + padding
-    const priceToY = (price: number) => top + ((max - price) / (max - min || 1)) * mainHeight
-
-    const sma7Map = valueMap(data?.indicators.sma7)
-    const sma25Map = valueMap(data?.indicators.sma25)
-    const bbUpperMap = valueMap(data?.indicators.bb_upper)
-    const bbLowerMap = valueMap(data?.indicators.bb_lower)
-    const rsiMap = valueMap(data?.indicators.rsi14)
-    const macdMap = valueMap(data?.indicators.macd)
-    const macdSignalMap = valueMap(data?.indicators.macd_signal)
-    const macdHistogramMap = valueMap(data?.indicators.macd_histogram)
-
-    const lineForIndicator = (map: Map<string, number>, yForValue: (value: number) => number) =>
-      candles
-        .map((candle, index) => {
-          const value = map.get(candle.time)
-          if (value === undefined) return null
-          return { x: xForIndex(index), y: yForValue(value) }
-        })
-        .filter((point): point is { x: number; y: number } => point !== null)
-
-    const storeLines = (data?.store_series ?? []).map((series, index) => ({
-      series,
-      color: STORE_COLORS[index % STORE_COLORS.length],
-      points: series.points
-        .map((point) => {
-          const candleIndex = timeToIndex.get(point.time)
-          if (candleIndex === undefined) return null
-          return { x: xForIndex(candleIndex), y: priceToY(point.price) }
-        })
-        .filter((point): point is { x: number; y: number } => point !== null),
-    }))
-
-    const rsiToY = (value: number) => rsiTop + ((100 - value) / 100) * indicatorHeight
-    const macdValues = [
-      ...(data?.indicators.macd ?? []).map((point) => point.value),
-      ...(data?.indicators.macd_signal ?? []).map((point) => point.value),
-      ...(data?.indicators.macd_histogram ?? []).map((point) => point.value),
-    ]
-    const macdMaxAbs = Math.max(...macdValues.map((value) => Math.abs(value)), 1)
-    const macdZeroY = macdTop + indicatorHeight / 2
-    const macdToY = (value: number) => macdZeroY - (value / macdMaxAbs) * (indicatorHeight / 2 - 6)
-    const candleWidth = Math.max(4, Math.min(16, (width / Math.max(candles.length, 1)) * 0.48))
-
-    return {
-      candles,
-      left,
-      width,
-      top,
-      mainHeight,
-      rsiTop,
-      macdTop,
-      indicatorHeight,
-      min,
-      max,
-      priceToY,
-      xForIndex,
-      candleWidth,
-      storeLines,
-      sma7: lineForIndicator(sma7Map, priceToY),
-      sma25: lineForIndicator(sma25Map, priceToY),
-      bbUpper: lineForIndicator(bbUpperMap, priceToY),
-      bbLower: lineForIndicator(bbLowerMap, priceToY),
-      rsi: lineForIndicator(rsiMap, rsiToY),
-      macd: lineForIndicator(macdMap, macdToY),
-      macdSignal: lineForIndicator(macdSignalMap, macdToY),
-      macdHistogramMap,
-      macdZeroY,
-      macdToY,
-      rsiToY,
-      timeToIndex,
-    }
-  }, [data])
-
   useEffect(() => {
-    const scroller = chartScrollerRef.current
-    if (!scroller) return
-    scroller.scrollLeft = scroller.scrollWidth
-  }, [data?.candles.length, days, interval])
+    const container = chartContainerRef.current
+    if (!container || !data || data.candles.length === 0) return
+
+    const candleByTime = new Map<number, Candle>()
+    for (const candle of data.candles) candleByTime.set(Number(toChartTime(candle.time)), candle)
+
+    const chart = createChart(container, {
+      autoSize: true,
+      height: 610,
+      layout: {
+        background: { type: ColorType.Solid, color: '#020617' },
+        textColor: '#94a3b8',
+        panes: {
+          separatorColor: '#1e293b',
+          separatorHoverColor: '#334155',
+          enableResize: true,
+        },
+      },
+      grid: {
+        vertLines: { color: '#0f1d32' },
+        horzLines: { color: '#1e293b' },
+      },
+      crosshair: {
+        mode: CrosshairMode.MagnetOHLC,
+        vertLine: { color: '#94a3b8', style: LineStyle.Dashed, labelBackgroundColor: '#334155' },
+        horzLine: { color: '#94a3b8', style: LineStyle.Dashed, labelBackgroundColor: '#334155' },
+      },
+      rightPriceScale: {
+        borderColor: '#334155',
+        scaleMargins: { top: 0.08, bottom: 0.08 },
+      },
+      timeScale: {
+        borderColor: '#334155',
+        timeVisible: interval === '1h',
+        secondsVisible: false,
+        rightOffset: 3,
+        barSpacing: interval === '1h' ? 8 : 12,
+        minBarSpacing: 3,
+      },
+      handleScroll: true,
+      handleScale: true,
+      localization: {
+        locale: chartLocale(language),
+        priceFormatter: (price: number) => `¥${Math.round(price).toLocaleString(chartLocale(language))}`,
+      },
+    })
+
+    const candles = chart.addSeries(
+      CandlestickSeries,
+      {
+        upColor: '#16a34a',
+        downColor: '#dc2626',
+        borderUpColor: '#22c55e',
+        borderDownColor: '#ef4444',
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
+        priceLineVisible: false,
+        lastValueVisible: false,
+      },
+      0,
+    )
+    candles.setData(
+      data.candles.map((candle) => ({
+        time: toChartTime(candle.time),
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+      })),
+    )
+
+    if (showStores) {
+      data.store_series.forEach((store, index) => {
+        const line = chart.addSeries(
+          LineSeries,
+          {
+            color: `${STORE_COLORS[index % STORE_COLORS.length]}99`,
+            lineWidth: 1,
+            priceLineVisible: false,
+            lastValueVisible: false,
+            crosshairMarkerVisible: false,
+          },
+          0,
+        )
+        line.setData(store.points.map((point) => ({ time: toChartTime(point.time), value: point.price })))
+      })
+    }
+
+    if (showBollinger) {
+      const upper = chart.addSeries(
+        LineSeries,
+        { color: '#64748b', lineWidth: 1, lineStyle: LineStyle.Dashed, priceLineVisible: false, lastValueVisible: false },
+        0,
+      )
+      const lower = chart.addSeries(
+        LineSeries,
+        { color: '#64748b', lineWidth: 1, lineStyle: LineStyle.Dashed, priceLineVisible: false, lastValueVisible: false },
+        0,
+      )
+      upper.setData(data.indicators.bb_upper.map((point) => ({ time: toChartTime(point.time), value: point.value })))
+      lower.setData(data.indicators.bb_lower.map((point) => ({ time: toChartTime(point.time), value: point.value })))
+    }
+
+    if (showEffectiveAverage) {
+      const average = chart.addSeries(
+        LineSeries,
+        {
+          color: '#2dd4bf',
+          lineWidth: 3,
+          title: labels.effectiveAverage,
+          priceLineVisible: true,
+          priceLineColor: '#2dd4bf',
+          lastValueVisible: true,
+        },
+        0,
+      )
+      average.setData(data.average_series.map((point) => ({ time: toChartTime(point.time), value: point.value })))
+    }
+
+    if (showMovingAverage) {
+      const sma7 = chart.addSeries(
+        LineSeries,
+        { color: '#facc15', lineWidth: 2, title: 'SMA 7', priceLineVisible: false, lastValueVisible: false },
+        0,
+      )
+      const sma25 = chart.addSeries(
+        LineSeries,
+        { color: '#38bdf8', lineWidth: 2, title: 'SMA 25', priceLineVisible: false, lastValueVisible: false },
+        0,
+      )
+      sma7.setData(data.indicators.sma7.map((point) => ({ time: toChartTime(point.time), value: point.value })))
+      sma25.setData(data.indicators.sma25.map((point) => ({ time: toChartTime(point.time), value: point.value })))
+    }
+
+    const rsi = chart.addSeries(
+      LineSeries,
+      { color: '#a78bfa', lineWidth: 2, title: 'RSI 14', priceLineVisible: false, lastValueVisible: true },
+      1,
+    )
+    rsi.setData(data.indicators.rsi14.map((point) => ({ time: toChartTime(point.time), value: point.value })))
+    rsi.createPriceLine({ price: 70, color: '#475569', lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true })
+    rsi.createPriceLine({ price: 30, color: '#475569', lineWidth: 1, lineStyle: LineStyle.Dashed, axisLabelVisible: true })
+
+    const histogram = chart.addSeries(
+      HistogramSeries,
+      { priceLineVisible: false, lastValueVisible: false, base: 0 },
+      2,
+    )
+    histogram.setData(
+      data.indicators.macd_histogram.map((point) => ({
+        time: toChartTime(point.time),
+        value: point.value,
+        color: point.value >= 0 ? '#22c55e88' : '#ef444488',
+      })),
+    )
+    const macd = chart.addSeries(
+      LineSeries,
+      { color: '#38bdf8', lineWidth: 2, title: 'MACD', priceLineVisible: false, lastValueVisible: false },
+      2,
+    )
+    const signal = chart.addSeries(
+      LineSeries,
+      { color: '#f97316', lineWidth: 2, title: 'Signal', priceLineVisible: false, lastValueVisible: false },
+      2,
+    )
+    macd.setData(data.indicators.macd.map((point) => ({ time: toChartTime(point.time), value: point.value })))
+    signal.setData(data.indicators.macd_signal.map((point) => ({ time: toChartTime(point.time), value: point.value })))
+
+    const panes = chart.panes()
+    panes[0]?.setStretchFactor(4)
+    panes[1]?.setStretchFactor(1)
+    panes[2]?.setStretchFactor(1)
+
+    chart.timeScale().fitContent()
+    chart.subscribeCrosshairMove((param) => {
+      if (param.time === undefined || param.point === undefined) {
+        setHoveredCandle(null)
+        return
+      }
+      setHoveredCandle(candleByTime.get(Number(param.time)) ?? null)
+    })
+
+    return () => {
+      setHoveredCandle(null)
+      chart.remove()
+    }
+  }, [data, interval, labels.effectiveAverage, language, showBollinger, showEffectiveAverage, showMovingAverage, showStores])
 
   const setActiveInterval = (nextInterval: Interval) => {
     setInterval(nextInterval)
     setDays(INTERVAL_DEFAULT_DAYS[nextInterval])
-    setHoverIndex(null)
-  }
-
-  const updateHover = (clientX: number, target: SVGRectElement) => {
-    if (!chart) return
-    const rect = target.getBoundingClientRect()
-    const x = ((clientX - rect.left) / rect.width) * 1120
-    const ratio = (x - chart.left) / chart.width
-    const nextIndex = Math.round(ratio * (chart.candles.length - 1))
-    setHoverIndex(Math.max(0, Math.min(chart.candles.length - 1, nextIndex)))
+    setHoveredCandle(null)
   }
 
   if (isLoading || data === undefined) {
@@ -366,7 +452,7 @@ export default function ProfessionalKLineChart({ productId, language }: Professi
     )
   }
 
-  if (!chart) {
+  if (data.candles.length === 0) {
     return (
       <div className="flex h-80 items-center justify-center rounded-lg bg-slate-950 text-slate-400">
         {labels.noData}
@@ -374,13 +460,7 @@ export default function ProfessionalKLineChart({ productId, language }: Professi
     )
   }
 
-  const activeIndex = hoverIndex ?? chart.candles.length - 1
-  const activeCandle = chart.candles[activeIndex]
-  const activeX = chart.xForIndex(activeIndex)
-  const tooltipX = activeX > 760 ? 86 : 748
-  const tooltipY = 44
-  const gridLines = [0, 0.25, 0.5, 0.75, 1]
-  const rsiGuide = [70, 50, 30]
+  const activeCandle = hoveredCandle ?? data.candles[data.candles.length - 1]
   const activeChangeClass =
     data.summary.change > 0 ? 'text-emerald-400' : data.summary.change < 0 ? 'text-red-400' : 'text-slate-300'
 
@@ -417,7 +497,7 @@ export default function ProfessionalKLineChart({ productId, language }: Professi
               type="button"
               onClick={() => {
                 setDays(value)
-                setHoverIndex(null)
+                setHoveredCandle(null)
               }}
               className={cx(
                 'rounded border px-2.5 py-1.5 text-xs font-medium transition-colors',
@@ -432,191 +512,67 @@ export default function ProfessionalKLineChart({ productId, language }: Professi
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 border-b border-slate-800 px-4 py-3 sm:grid-cols-5">
-        <Metric label={labels.latest} value={formatPrice(data.summary.latest_close)} />
+      <div className="grid grid-cols-2 gap-2 border-b border-slate-800 px-4 py-3 sm:grid-cols-6">
+        <Metric label={labels.effectiveAverage} value={formatPrice(data.summary.latest_average)} />
         <Metric label={labels.change} value={formatChange(data.summary.change, data.summary.change_percent)} valueClass={activeChangeClass} />
         <Metric label={labels.high} value={formatPrice(data.summary.high)} />
         <Metric label={labels.low} value={formatPrice(data.summary.low)} />
         <Metric label={labels.stores} value={`${data.summary.store_count}`} />
+        <Metric label={labels.excluded} value={`${data.summary.latest_filtered_store_count}`} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2 px-4 pt-4">
         <ToggleButton active={showStores} onClick={() => setShowStores((value) => !value)} label={labels.storeLines} />
-        <ToggleButton active={showAverage} onClick={() => setShowAverage((value) => !value)} label={labels.movingAverage} />
+        <ToggleButton
+          active={showEffectiveAverage}
+          onClick={() => setShowEffectiveAverage((value) => !value)}
+          label={labels.effectiveAverage}
+        />
+        <ToggleButton
+          active={showMovingAverage}
+          onClick={() => setShowMovingAverage((value) => !value)}
+          label={labels.movingAverage}
+        />
         <ToggleButton active={showBollinger} onClick={() => setShowBollinger((value) => !value)} label={labels.bollinger} />
         <span className="ml-auto text-xs text-slate-500">
           {labels.points}: {data.summary.data_points} / {labels.samples}: {data.summary.sample_count}
         </span>
       </div>
 
-      <div ref={chartScrollerRef} className="overflow-x-auto px-2 pb-4 pt-2 sm:px-4">
-        <svg
-          className="block h-[560px] w-[980px] max-w-none touch-pan-y select-none sm:h-[620px] sm:w-full"
-          viewBox="0 0 1120 620"
-          preserveAspectRatio="none"
-          role="img"
-          aria-label={labels.title}
-        >
-          <rect x="0" y="0" width="1120" height="620" fill="#020617" />
+      <div className="relative mt-2 min-h-[610px] w-full" aria-label={labels.title} role="img">
+        <div ref={chartContainerRef} className="h-[610px] w-full" />
+        <div className="pointer-events-none absolute left-3 top-3 z-10 max-w-[calc(100%-5rem)] rounded border border-slate-700/80 bg-slate-900/90 px-3 py-2 text-[11px] shadow-lg backdrop-blur sm:left-4 sm:text-xs">
+          <p className="truncate font-semibold text-slate-100">{activeCandle.label}</p>
+          <p className="mt-1 whitespace-nowrap text-slate-400">
+            O {formatPrice(activeCandle.open)} H {formatPrice(activeCandle.high)} L {formatPrice(activeCandle.low)} C{' '}
+            {formatPrice(activeCandle.close)}
+          </p>
+          <p className="mt-1 text-teal-300">
+            {labels.effectiveAverage}: {formatPrice(activeCandle.average)}
+          </p>
+          <p className="mt-1 truncate text-slate-400">
+            {labels.bestStore}: {activeCandle.best_store ?? '-'} / {labels.stores}: {activeCandle.store_count} / {labels.excluded}:{' '}
+            {activeCandle.filtered_store_count}
+          </p>
+        </div>
+      </div>
 
-          {gridLines.map((line) => {
-            const y = chart.top + line * chart.mainHeight
-            const value = chart.max - line * (chart.max - chart.min)
-            return (
-              <g key={`main-grid-${line}`}>
-                <line x1={chart.left} x2={chart.left + chart.width} y1={y} y2={y} stroke="#1e293b" strokeWidth="1" />
-                <text x="1070" y={y + 4} fill="#94a3b8" fontSize="12" textAnchor="end">
-                  {formatCompactPrice(value)}
-                </text>
-              </g>
-            )
-          })}
-
-          {chart.candles.map((candle, index) => {
-            const x = chart.xForIndex(index)
-            const openY = chart.priceToY(candle.open)
-            const closeY = chart.priceToY(candle.close)
-            const highY = chart.priceToY(candle.high)
-            const lowY = chart.priceToY(candle.low)
-            const isUp = candle.close >= candle.open
-            const color = isUp ? '#22c55e' : '#ef4444'
-            const bodyY = Math.min(openY, closeY)
-            const bodyHeight = Math.max(Math.abs(openY - closeY), 2)
-            return (
-              <g key={candle.time}>
-                <line x1={x} x2={x} y1={highY} y2={lowY} stroke={color} strokeWidth="1.5" />
-                <rect
-                  x={x - chart.candleWidth / 2}
-                  y={bodyY}
-                  width={chart.candleWidth}
-                  height={bodyHeight}
-                  rx="1"
-                  fill={isUp ? '#16a34a' : '#dc2626'}
-                  stroke={color}
-                  strokeWidth="1"
-                />
-              </g>
-            )
-          })}
-
-          {showStores &&
-            chart.storeLines.map((line) =>
-              line.points.length >= 2 ? (
-                <polyline
-                  key={line.series.store_id}
-                  points={pathFromPoints(line.points)}
-                  fill="none"
-                  stroke={line.color}
-                  strokeWidth="1.4"
-                  strokeOpacity="0.56"
-                />
-              ) : null,
-            )}
-
-          {showBollinger && chart.bbUpper.length >= 2 && (
-            <polyline points={pathFromPoints(chart.bbUpper)} fill="none" stroke="#64748b" strokeDasharray="5 5" strokeWidth="1.2" />
-          )}
-          {showBollinger && chart.bbLower.length >= 2 && (
-            <polyline points={pathFromPoints(chart.bbLower)} fill="none" stroke="#64748b" strokeDasharray="5 5" strokeWidth="1.2" />
-          )}
-          {showAverage && chart.sma7.length >= 2 && (
-            <polyline points={pathFromPoints(chart.sma7)} fill="none" stroke="#facc15" strokeWidth="2" />
-          )}
-          {showAverage && chart.sma25.length >= 2 && (
-            <polyline points={pathFromPoints(chart.sma25)} fill="none" stroke="#38bdf8" strokeWidth="2" />
-          )}
-
-          <text x={chart.left} y={18} fill="#cbd5e1" fontSize="13" fontWeight="600">
-            {labels.aggregate}
-          </text>
-          <text x={chart.left} y={chart.rsiTop - 12} fill="#cbd5e1" fontSize="13" fontWeight="600">
-            RSI 14
-          </text>
-          <text x={chart.left} y={chart.macdTop - 12} fill="#cbd5e1" fontSize="13" fontWeight="600">
-            MACD
-          </text>
-
-          {rsiGuide.map((value) => {
-            const y = chart.rsiToY(value)
-            return (
-              <g key={`rsi-${value}`}>
-                <line x1={chart.left} x2={chart.left + chart.width} y1={y} y2={y} stroke="#1e293b" strokeWidth="1" />
-                <text x="1070" y={y + 4} fill="#64748b" fontSize="11" textAnchor="end">
-                  {value}
-                </text>
-              </g>
-            )
-          })}
-          {chart.rsi.length >= 2 && <polyline points={pathFromPoints(chart.rsi)} fill="none" stroke="#a78bfa" strokeWidth="1.8" />}
-
-          <line x1={chart.left} x2={chart.left + chart.width} y1={chart.macdZeroY} y2={chart.macdZeroY} stroke="#334155" strokeWidth="1" />
-          {chart.candles.map((candle, index) => {
-            const value = chart.macdHistogramMap.get(candle.time)
-            if (value === undefined) return null
-            const x = chart.xForIndex(index)
-            const y = value >= 0 ? chart.macdToY(value) : chart.macdZeroY
-            const height = Math.abs(chart.macdToY(value) - chart.macdZeroY)
-            return (
-              <rect
-                key={`macd-h-${candle.time}`}
-                x={x - chart.candleWidth / 2}
-                y={y}
-                width={chart.candleWidth}
-                height={Math.max(height, 1)}
-                fill={value >= 0 ? '#22c55e' : '#ef4444'}
-                opacity="0.55"
-              />
-            )
-          })}
-          {chart.macd.length >= 2 && <polyline points={pathFromPoints(chart.macd)} fill="none" stroke="#38bdf8" strokeWidth="1.7" />}
-          {chart.macdSignal.length >= 2 && <polyline points={pathFromPoints(chart.macdSignal)} fill="none" stroke="#f97316" strokeWidth="1.7" />}
-
-          {chart.candles.map((candle, index) => {
-            if (index % Math.max(1, Math.ceil(chart.candles.length / 6)) !== 0 && index !== chart.candles.length - 1) return null
-            return (
-              <text key={`x-${candle.time}`} x={chart.xForIndex(index)} y="606" fill="#64748b" fontSize="11" textAnchor="middle">
-                {candle.label}
-              </text>
-            )
-          })}
-
-          <line x1={activeX} x2={activeX} y1={chart.top} y2={chart.macdTop + chart.indicatorHeight} stroke="#e2e8f0" strokeDasharray="4 6" strokeOpacity="0.55" />
-          <circle cx={activeX} cy={chart.priceToY(activeCandle.close)} r="4" fill="#f8fafc" stroke="#0ea5e9" strokeWidth="2" />
-          <rect x={tooltipX} y={tooltipY} width="286" height="166" rx="6" fill="#0f172a" stroke="#334155" />
-          <text x={tooltipX + 14} y={tooltipY + 24} fill="#f8fafc" fontSize="13" fontWeight="600">
-            {activeCandle.label}
-          </text>
-          <text x={tooltipX + 14} y={tooltipY + 48} fill="#94a3b8" fontSize="12">
-            O {formatPrice(activeCandle.open)}  H {formatPrice(activeCandle.high)}
-          </text>
-          <text x={tooltipX + 14} y={tooltipY + 70} fill="#94a3b8" fontSize="12">
-            L {formatPrice(activeCandle.low)}  C {formatPrice(activeCandle.close)}
-          </text>
-          <text x={tooltipX + 14} y={tooltipY + 94} fill="#cbd5e1" fontSize="12">
-            {labels.bestStore}: {activeCandle.best_store ?? '-'}
-          </text>
-          <text x={tooltipX + 14} y={tooltipY + 118} fill="#94a3b8" fontSize="12">
-            {labels.stores}: {activeCandle.store_count} / {labels.samples}: {activeCandle.sample_count}
-          </text>
-          <text x={tooltipX + 14} y={tooltipY + 142} fill="#64748b" fontSize="11">
-            {labels.indicators}: SMA7 / SMA25 / BB / RSI / MACD
-          </text>
-
-          <rect
-            x={chart.left}
-            y="0"
-            width={chart.width}
-            height="620"
-            fill="transparent"
-            pointerEvents="all"
-            onMouseMove={(event) => updateHover(event.clientX, event.currentTarget)}
-            onMouseLeave={() => setHoverIndex(null)}
-            onTouchMove={(event) => {
-              const touch = event.touches[0]
-              if (touch) updateHover(touch.clientX, event.currentTarget)
-            }}
-          />
-        </svg>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-800 px-4 py-2 text-[11px] text-slate-500">
+        <span><span className="text-teal-400">━</span> {labels.effectiveAverage}</span>
+        <span><span className="text-yellow-400">━</span> SMA 7</span>
+        <span><span className="text-sky-400">━</span> SMA 25 / MACD</span>
+        <span><span className="text-violet-400">━</span> RSI 14</span>
+        <span className="ml-auto">
+          Copyright © 2025 TradingView, Inc.{' '}
+          <a
+            href="https://www.tradingview.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="pointer-events-auto text-sky-400 hover:text-sky-300"
+          >
+            TradingView
+          </a>
+        </span>
       </div>
 
       {data.store_series.length > 0 && (

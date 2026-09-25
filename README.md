@@ -35,6 +35,20 @@ NOVA AIは、iPhone買取市場の価格比較とスマートフォン相談を�
 - 会社概要
 - 開発ログ
 
+## 構成
+
+このリポジトリには Web サイト・データベース・AI ゲートウェイのコードを公開しています。価格収集システムと AI コア（プロンプト・回答ルール）は非公開です。
+
+| ディレクトリ | 内容 |
+|------|------|
+| `frontend/` | 会社サイトと NOVA AI の画面（React + Vite） |
+| `backend/app/web/` | 価格・商品・店舗・会員・管理画面の API（FastAPI） |
+| `backend/app/pricing/` | 市場平均、コンセンサス価格、Kライン、標準商品カタログ |
+| `backend/app/db/` | テーブル定義、システム別のデータベース権限、移行コマンド |
+| `backend/app/ai_gateway/` | AI の API、利用回数、質問の前処理（機種・容量・台数の判定と価格選択） |
+
+詳しくは [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) と [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) を参照してください。
+
 ## NOVA 技術リリース履歴
 
 技術更新の記録は、ウェブ版の [NOVA 技術リリース履歴](https://novatekku.com/development) に統一しています。

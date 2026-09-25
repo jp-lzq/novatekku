@@ -1,9 +1,9 @@
 import { FormEvent, useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AlertTriangle, KeyRound, LogIn, Mail } from 'lucide-react'
 import { apiPost } from '../lib/api'
-import { publicMemberAuthEnabled } from '../lib/memberAuth'
+import { getMemberAuthStatus, memberAuthStatusQueryKey } from '../lib/memberAuth'
 import type { MemberProfile } from '../lib/member'
 import { useI18n } from '../i18n'
 import { LightPage, PageHeader, lightPanelClass } from '../components/PageChrome'
@@ -26,7 +26,14 @@ export default function MemberLogin() {
   const [password, setPassword] = useState('')
   const [errorKey, setErrorKey] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const showLoginForm = publicMemberAuthEnabled || searchParams.get('admin') === '1'
+  const authStatus = useQuery({
+    queryKey: memberAuthStatusQueryKey,
+    queryFn: getMemberAuthStatus,
+    staleTime: 15_000,
+    retry: false,
+  })
+  const adminLogin = searchParams.get('admin') === '1'
+  const showLoginForm = adminLogin || authStatus.data?.enabled !== false
 
   if (!showLoginForm) {
     return (
@@ -37,6 +44,12 @@ export default function MemberLogin() {
             <AlertTriangle className="h-7 w-7 text-amber-600" />
             <h2 className="mt-4 text-2xl font-semibold text-slate-950">{t('memberAuthPausedTitle')}</h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">{t('memberAuthPausedDescription')}</p>
+            <Link
+              to="/members/login?admin=1"
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:border-slate-400 hover:text-slate-950"
+            >
+              {t('memberAdminPanel')}
+            </Link>
           </section>
         </main>
       </LightPage>
@@ -53,6 +66,9 @@ export default function MemberLogin() {
       queryClient.setQueryData(['current-member'], member)
       navigate('/members/me')
     } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 503) {
+        queryClient.setQueryData(memberAuthStatusQueryKey, { enabled: false })
+      }
       setErrorKey(getErrorKey(error))
     } finally {
       setIsSubmitting(false)
@@ -121,12 +137,14 @@ export default function MemberLogin() {
             </div>
           )}
 
-          <div className="mt-6 text-sm text-slate-600">
-            {t('memberLoginNoAccount')}{' '}
-            <Link to="/members/register" className="font-medium text-slate-950 hover:underline">
-              {t('memberRegisterNav')}
-            </Link>
-          </div>
+          {authStatus.data?.enabled !== false && (
+            <div className="mt-6 text-sm text-slate-600">
+              {t('memberLoginNoAccount')}{' '}
+              <Link to="/members/register" className="font-medium text-slate-950 hover:underline">
+                {t('memberRegisterNav')}
+              </Link>
+            </div>
+          )}
           <div className="mt-3 text-sm">
             <Link to="/members/reset-password" className="font-medium text-slate-950 hover:underline">
               {t('memberForgotPassword')}

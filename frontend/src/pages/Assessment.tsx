@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ClipboardCheck, ExternalLink, Minus, Plus, Route, Trash2 } from 'lucide-react'
-import { apiGet } from '../lib/api'
+import { apiGet, apiPost } from '../lib/api'
 import { useI18n, type Language } from '../i18n'
 import { LightPage, PageHeader, lightPanelClass } from '../components/PageChrome'
 
@@ -24,39 +24,10 @@ interface ColorVariant {
   name_ja: string
   name_en: string
   name_zh: string
-  jan_code?: string | null
-}
-
-interface AssessmentOffer {
-  price: number
-  store_id: number
-  product_id: number
-  variant_id: number
-  source_type: 'official' | 'sheet'
-  is_default_color_price: boolean
-  collected_at: string
-}
-
-interface UsableOffer extends AssessmentOffer {
-  store: Store
 }
 
 interface AssessmentData {
   products: Product[]
-  stores: Store[]
-  offers: AssessmentOffer[]
-}
-
-interface MarketPrice {
-  store_id: number
-  store_name: string
-  price: number
-  scraped_at: string | null
-}
-
-interface MarketSummary {
-  product_id: number
-  accepted_prices: MarketPrice[]
 }
 
 interface SelectedItem {
@@ -84,6 +55,12 @@ interface RouteStop {
   applicationUrl: string
   total: number
   lines: OfferLine[]
+}
+
+interface AssessmentQuote {
+  store_offers: Array<Omit<StoreOffer, 'applicationUrl'>>
+  route_stops: Array<Omit<RouteStop, 'applicationUrl'>>
+  route_total: number
 }
 
 const APPLICATION_URLS: Record<string, string> = {
@@ -240,44 +217,21 @@ export default function Assessment() {
   const [addQuantity, setAddQuantity] = useState(1)
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
   const [confirmed, setConfirmed] = useState(false)
+  const [quote, setQuote] = useState<AssessmentQuote | null>(null)
+  const [quoteLoading, setQuoteLoading] = useState(false)
 
-  const { data, isLoading } = useQuery<{ assessment: AssessmentData; market: MarketSummary[] }>({
+  const { data, isLoading } = useQuery<AssessmentData>({
     queryKey: ['assessment-prices'],
-    queryFn: async () => {
-      const [assessment, market] = await Promise.all([
-        apiGet<AssessmentData>('/api/v1/prices/assessment'),
-        apiGet<MarketSummary[]>('/api/v1/prices/market-average', { params: { limit: 300 } }),
-      ])
-      return { assessment, market }
-    },
+    queryFn: () => apiGet<AssessmentData>('/api/v1/prices/assessment'),
     staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
   })
 
-  const usableOffers = useMemo(() => {
-    const accepted = new Set(
-      (data?.market ?? []).flatMap((summary) => summary.accepted_prices.map(
-        (price) => `${summary.product_id}:${price.store_id}`,
-      )),
-    )
-    const stores = new Map((data?.assessment.stores ?? []).map((store) => [store.id, store]))
-    return (data?.assessment.offers ?? []).flatMap((offer): UsableOffer[] => {
-      const store = stores.get(offer.store_id)
-      if (!store || offer.price < 10000 || !accepted.has(`${offer.product_id}:${offer.store_id}`)) return []
-      return [{ ...offer, store }]
-    })
-  }, [data])
-
   const products = useMemo(() => {
-    const availableVariants = new Set(usableOffers.map((offer) => offer.variant_id))
-    return (data?.assessment.products ?? [])
-      .map((product) => ({
-        ...product,
-        colors: product.colors.filter((color) => availableVariants.has(color.variant_id)),
-      }))
+    return (data?.products ?? [])
       .filter((product) => /^iPhone/i.test(product.model) && product.colors.length > 0)
       .sort(sortProducts)
-  }, [data, usableOffers])
+  }, [data])
 
   useEffect(() => {
     if (productId === '' && products.length > 0) setProductId(products[0].id)
@@ -312,6 +266,7 @@ export default function Assessment() {
     })
     setAddQuantity(1)
     setConfirmed(false)
+    setQuote(null)
   }
 
   const changeQuantity = (selectedVariantId: number, amount: number) => {
@@ -319,67 +274,39 @@ export default function Assessment() {
       ? { ...item, quantity: Math.max(1, Math.min(99, item.quantity + amount)) }
       : item))
     setConfirmed(false)
+    setQuote(null)
   }
 
   const removeItem = (selectedVariantId: number) => {
     setSelectedItems((items) => items.filter((item) => item.variantId !== selectedVariantId))
     setConfirmed(false)
+    setQuote(null)
   }
 
-  const { storeOffers, routeStops, routeTotal } = useMemo(() => {
-    const selected = selectedItems
-      .map((item) => ({ ...item, ...variantById.get(item.variantId) }))
-      .filter((item): item is SelectedItem & { product: Product; color: ColorVariant } => Boolean(item.product && item.color))
+  const storeOffers = useMemo<StoreOffer[]>(() => (quote?.store_offers ?? []).map((offer) => ({
+    ...offer,
+    applicationUrl: APPLICATION_URLS[offer.store.name] || offer.store.website_url || '#',
+  })), [quote])
+  const routeStops = useMemo<RouteStop[]>(() => (quote?.route_stops ?? []).map((stop) => ({
+    ...stop,
+    applicationUrl: APPLICATION_URLS[stop.store.name] || stop.store.website_url || '#',
+  })), [quote])
+  const routeTotal = quote?.route_total ?? 0
 
-    const stores = new Map<number, Store>()
-    const priceMap = new Map<string, UsableOffer>()
-    usableOffers.forEach((price) => {
-      stores.set(price.store.id, price.store)
-      const key = `${price.variant_id}:${price.store.id}`
-      const current = priceMap.get(key)
-      if (!current || price.price > current.price) priceMap.set(key, price)
-    })
-
-    const completeOffers: StoreOffer[] = []
-    stores.forEach((store) => {
-      const lines: OfferLine[] = []
-      for (const item of selected) {
-        const price = priceMap.get(`${item.variantId}:${store.id}`)
-        if (!price) return
-        lines.push({ product: item.product, color: item.color, quantity: item.quantity, unitPrice: price.price })
-      }
-      completeOffers.push({
-        store,
-        applicationUrl: APPLICATION_URLS[store.name] || store.website_url || '#',
-        total: lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0),
-        lines,
+  const confirmAssessment = async () => {
+    if (selectedItems.length === 0 || quoteLoading) return
+    setQuoteLoading(true)
+    setConfirmed(false)
+    try {
+      const nextQuote = await apiPost<AssessmentQuote>('/api/v1/prices/assessment', {
+        items: selectedItems.map((item) => ({ variant_id: item.variantId, quantity: item.quantity })),
       })
-    })
-
-    const stops = new Map<number, RouteStop>()
-    selected.forEach((item) => {
-      const best = usableOffers
-        .filter((price) => price.variant_id === item.variantId)
-        .sort((a, b) => b.price - a.price)[0]
-      if (!best) return
-      const existing = stops.get(best.store.id) ?? {
-        store: best.store,
-        applicationUrl: APPLICATION_URLS[best.store.name] || best.store.website_url || '#',
-        total: 0,
-        lines: [],
-      }
-      existing.lines.push({ product: item.product, color: item.color, quantity: item.quantity, unitPrice: best.price })
-      existing.total += best.price * item.quantity
-      stops.set(best.store.id, existing)
-    })
-
-    const sortedStops = [...stops.values()].sort((a, b) => b.total - a.total)
-    return {
-      storeOffers: completeOffers.sort((a, b) => b.total - a.total).slice(0, 5),
-      routeStops: sortedStops,
-      routeTotal: sortedStops.reduce((sum, stop) => sum + stop.total, 0),
+      setQuote(nextQuote)
+      setConfirmed(true)
+    } finally {
+      setQuoteLoading(false)
     }
-  }, [selectedItems, usableOffers, variantById])
+  }
 
   const selectedCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0)
 
@@ -504,15 +431,15 @@ export default function Assessment() {
           <div className="mt-6 flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
-              onClick={() => setConfirmed(true)}
-              disabled={selectedItems.length === 0}
+              onClick={confirmAssessment}
+              disabled={selectedItems.length === 0 || quoteLoading}
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-violet-700 px-5 py-3.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:bg-slate-300"
             >
               <ClipboardCheck className="h-4 w-4" />
-              {copy.confirm}
+              {quoteLoading ? copy.loading : copy.confirm}
             </button>
             {selectedItems.length > 0 && (
-              <button type="button" onClick={() => { setSelectedItems([]); setConfirmed(false) }} className="rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-950">
+              <button type="button" onClick={() => { setSelectedItems([]); setQuote(null); setConfirmed(false) }} className="rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-medium text-slate-600 hover:text-slate-950">
                 {copy.reset}
               </button>
             )}

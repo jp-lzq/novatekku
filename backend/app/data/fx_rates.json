@@ -1,0 +1,25 @@
+{
+  "rates": {
+    "USD": {
+      "rate": 161.39,
+      "symbol": "$",
+      "flag": "🇺🇸"
+    },
+    "HKD": {
+      "rate": 20.58,
+      "symbol": "HK$",
+      "flag": "🇭🇰"
+    },
+    "CNY": {
+      "rate": 23.8,
+      "symbol": "¥",
+      "flag": "🇨🇳"
+    },
+    "EUR": {
+      "rate": 184.6,
+      "symbol": "€",
+      "flag": "🇪🇺"
+    }
+  },
+  "last_updated": "2026-07-06T03:36:42.648065"
+}

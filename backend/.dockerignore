@@ -2,5 +2,5 @@
 .pytest_cache/
 __pycache__/
 *.py[cod]
+celerybeat-schedule*
 tests/
-requirements-dev.txt
