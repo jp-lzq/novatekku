@@ -46,6 +46,7 @@ NOVA AIは、iPhone買取市場の価格比較とスマートフォン相談を�
 | `backend/app/pricing/` | 市場平均、コンセンサス価格、Kライン、標準商品カタログ |
 | `backend/app/db/` | テーブル定義、システム別のデータベース権限、移行コマンド |
 | `backend/app/ai_gateway/` | AI の API、利用回数、質問の前処理（機種・容量・台数の判定と価格選択） |
+| `plugins/` | 単独で使える AI ツール：見積もり文の構造化（ai-quote-parser）、AI 回答の採点（ai-answer-judge） |
 
 詳しくは [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) と [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) を参照してください。
 
