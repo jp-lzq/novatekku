@@ -162,4 +162,18 @@ export const DEVELOPMENT_LOGS: DevelopmentLogEntry[] = [
       ja: 'バージョン管理されたデータ契約、相場外れ値除外、レート制限、認証保護を追加し、価格分析機能を安定して提供できる基盤を整えました。',
     },
   },
+  {
+    period: '2026.09',
+    phase: { en: 'Database', zh: '数据库', ja: 'データベース' },
+    title: {
+      en: 'Strengthened database security and backups',
+      zh: '强化数据库安全与备份',
+      ja: 'データベースの安全性とバックアップを強化',
+    },
+    content: {
+      en: 'Separated database permissions by system and added daily automatic backups with fast rollback.',
+      zh: '按系统分离数据库权限，加入每日自动备份与快速回滚。',
+      ja: 'システムごとにデータベース権限を分離し、毎日の自動バックアップと迅速な復旧を整えました。',
+    },
+  },
 ]
