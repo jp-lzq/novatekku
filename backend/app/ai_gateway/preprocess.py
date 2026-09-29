@@ -133,9 +133,11 @@ def extract_variant(text: str) -> str | None:
         return "plus"
     if "mini" in text:
         return "mini"
+    if re.search(r"\bair\b", text):
+        return "air"
     if re.search(r"\bpro\b", text):
         return "pro"
-    if re.search(r"\be\b", text):
+    if re.search(r"\be\b|\d{2}e\b", text):
         return "e"
     return None
 
@@ -155,7 +157,14 @@ def extract_capacity(text: str) -> str | None:
     return None
 
 
-def item_matches_spec(item: dict, generation: str | None, variant: str | None, capacity: str | None) -> bool:
+def item_matches_spec(
+    item: dict,
+    generation: str | None,
+    variant: str | None,
+    capacity: str | None,
+    strict: bool = False,
+) -> bool:
+    """strict: a spec without a variant ("17 256") only matches the base model."""
     model = normalize_text(str(item.get("model") or item.get("product") or ""))
     item_generation = extract_generation(model)
     item_variant = extract_variant(model)
@@ -168,6 +177,8 @@ def item_matches_spec(item: dict, generation: str | None, variant: str | None, c
             return False
         if variant != "pro" and item_variant != variant:
             return False
+    elif strict and item_variant is not None:
+        return False
     if capacity and item_capacity != capacity:
         return False
     return True
@@ -176,7 +187,7 @@ def item_matches_spec(item: dict, generation: str | None, variant: str | None, c
 def parse_bulk_request(message: str) -> list[dict]:
     text = normalize_text(message)
     pattern = re.compile(
-        r"(?:iphone\s*)?(\d{2})\s*(pro max|pro|plus|mini|e)?\s*(128|256|512|1024|2048|1tb|2tb)?\s*(?:gb)?\s*[*x×]\s*(\d+)",
+        r"(?:iphone\s*)?(\d{2})\s*(pro max|pro|plus|mini|air|e)?\s*(128|256|512|1024|2048|1tb|2tb)?\s*(?:gb)?\s*[*x×]\s*(\d+)",
         re.I,
     )
     items = []
@@ -204,6 +215,7 @@ def build_focused_simple_price_data(message: str, full_price_data: list[dict], f
                     spec.get("generation"),
                     spec.get("variant"),
                     spec.get("capacity"),
+                    strict=True,
                 ):
                     key = (
                         item.get("model"),
@@ -263,6 +275,7 @@ def quote_bulk_request(message: str, full_price_data: list[dict]) -> dict | None
                 spec.get("generation"),
                 spec.get("variant"),
                 spec.get("capacity"),
+                strict=True,
             )
         ]
         if not matches:

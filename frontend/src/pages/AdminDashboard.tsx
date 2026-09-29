@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, Database, MessageSquare, Power, RotateCcw, ShieldAlert, Users } from 'lucide-react'
+import { ChevronRight, Database, MessageSquare, Power, RotateCcw, ShieldAlert, Users, Workflow } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import AdminShell, { dateTime, useAdminAccess } from '../components/AdminShell'
 import { apiGet, apiPost } from '../lib/api'
@@ -24,6 +24,12 @@ const modules = [
     Icon: Database,
     title: '価格記録',
     description: '店舗から商品へ進み、公式価格と表データを並べて確認します。',
+  },
+  {
+    to: '/admin/collection-sources',
+    Icon: Workflow,
+    title: '収集元',
+    description: '収集元の URL、解析方式、最新の収集結果と失敗理由を確認します。',
   },
   {
     to: '/admin/ai-history',

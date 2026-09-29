@@ -5,12 +5,20 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Major upgrades (React 19, Tailwind 4, ...) are planned and tested by hand.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: pip
     directory: /backend
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Major upgrades are planned and tested by hand.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

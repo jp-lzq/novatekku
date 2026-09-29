@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query, Request, Response
@@ -8,6 +9,7 @@ from app.db.session import get_db
 from app.db.models import (
     AIConversationLog,
     CollectionRun,
+    CollectionSource,
     Member,
     MemberAIUsage,
     MemberLoginEvent,
@@ -605,6 +607,54 @@ def admin_collection_runs(
         query = query.filter(CollectionRun.source_type == source_type)
     runs = query.order_by(CollectionRun.started_at.desc()).limit(limit).all()
     return {"items": [_run_payload(run) for run in runs]}
+
+
+@router.get("/collection-sources")
+def admin_collection_sources(
+    response: Response,
+    _: AuthContext = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Collection sources with their latest run.  Read-only: sources are
+    changed with `python -m nova_collector.sources import` by the operator, so a
+    compromised website account cannot redirect the collectors."""
+    no_store(response)
+    sources = db.query(CollectionSource).order_by(
+        CollectionSource.kind, CollectionSource.sort_order, CollectionSource.id
+    ).all()
+    latest_ids = (
+        db.query(func.max(CollectionRun.id))
+        .filter(CollectionRun.source_name.in_([source.name for source in sources]))
+        .group_by(CollectionRun.source_type, CollectionRun.source_name)
+    )
+    latest = {
+        (run.source_type, run.source_name): run
+        for run in db.query(CollectionRun).filter(CollectionRun.id.in_(latest_ids)).all()
+    }
+    success = dict(
+        db.query(CollectionRun.source_name, func.max(CollectionRun.finished_at))
+        .filter(CollectionRun.status.in_(("success", "partial")))
+        .group_by(CollectionRun.source_name)
+        .all()
+    )
+    items = []
+    for source in sources:
+        run = latest.get((source.kind, source.name))
+        items.append({
+            "id": source.id,
+            "kind": source.kind,
+            "name": source.name,
+            "store_name": source.store_name,
+            "parser": source.parser,
+            "urls": json.loads(source.urls or "[]"),
+            "public_url": source.public_url,
+            "unsupported_reason": source.unsupported_reason,
+            "enabled": source.enabled,
+            "updated_at": source.updated_at,
+            "last_run": _run_payload(run) if run else None,
+            "last_success_at": success.get(source.name),
+        })
+    return {"items": items}
 
 
 def _run_payload(run: CollectionRun) -> dict:

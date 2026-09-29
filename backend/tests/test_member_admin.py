@@ -12,6 +12,7 @@ from app.db.session import Base, get_db
 from app.db.models import (
     AIConversationLog,
     CollectionRun,
+    CollectionSource,
     Member,
     MemberLoginEvent,
     OfficialStoreProduct,
@@ -559,3 +560,32 @@ def test_admin_modules_group_prices_and_show_member_and_ai_history(client):
     member_history = client.get("/api/v1/admin/ai-history", params={"actor": "member"}).json()
     assert member_history["total"] == 1
     assert member_history["items"][0]["username"] == "buyer"
+
+
+def test_admin_reads_collection_sources_with_latest_run(client):
+    with TestingSessionLocal() as db:
+        db.add(Member(username="siteadmin", email="admin@example.com", password_hash=members.hash_password("AdminPass123")))
+        db.add(CollectionSource(kind="official", name="テスト店 公式価格表", store_name="テスト店", parser="morimori",
+                                urls='["https://store.example/list"]', options="{}"))
+        db.add(CollectionSource(kind="sheet", name="Price sheet", urls='["https://sheet.example/a.csv"]', enabled=False))
+        db.add_all([
+            CollectionRun(source_type="official", source_name="テスト店 公式価格表", status="success", prices_saved=5),
+            CollectionRun(source_type="official", source_name="テスト店 公式価格表", status="failed", error_message="timeout"),
+        ])
+        db.commit()
+    assert client.get("/api/v1/admin/collection-sources").status_code == 401
+    assert register(client).status_code == 201
+    assert client.get("/api/v1/admin/collection-sources").status_code == 403
+    client.cookies.clear()
+    assert client.post("/api/v1/members/login", json={"identifier": "siteadmin", "password": "AdminPass123"}).status_code == 200
+    response = client.get("/api/v1/admin/collection-sources")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    items = {item["name"]: item for item in response.json()["items"]}
+    official = items["テスト店 公式価格表"]
+    assert official["urls"] == ["https://store.example/list"]
+    assert official["last_run"]["status"] == "failed"
+    assert official["last_run"]["error_message"] == "timeout"
+    assert official["last_success_at"] is None or isinstance(official["last_success_at"], str)
+    assert items["Price sheet"]["enabled"] is False
+    assert items["Price sheet"]["last_run"] is None
