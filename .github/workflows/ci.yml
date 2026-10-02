@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        plugin: [ai-quote-parser, ai-answer-judge]
+        plugin: [ai-quote-parser, ai-answer-judge, ai-price-anomaly, ai-intent-router]
     defaults:
       run:
         working-directory: plugins/${{ matrix.plugin }}
