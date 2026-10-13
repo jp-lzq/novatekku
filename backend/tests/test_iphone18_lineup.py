@@ -81,3 +81,30 @@ def test_new_products_keep_color_fallback_and_24_hour_expiry(db):
     offers = _assessment_data(db)["offers"]
     assert len(offers) == 4
     assert {row["price"] for row in offers} == {230000}
+
+
+def test_color_prices_use_accepted_stores_and_hide_store_names(db, monkeypatch):
+    from app.web.routers import prices as prices_router
+    sync_announced_lineup(db, LINEUP_RETAIL_PRICES)
+    product = db.query(Product).filter_by(model="iPhone 18 Pro", capacity="256").one()
+    variants = {v.color_code: v for v in db.query(ProductVariant).filter_by(product_id=product.id)}
+    good, other, outlier = Store(name="Good", is_active=1), Store(name="Other", is_active=1), Store(name="Outlier", is_active=1)
+    db.add_all([good, other, outlier])
+    db.flush()
+    now = datetime.now(timezone.utc)
+    rows = [(good, "black", 230000), (good, "silver", 228000), (other, "black", 231000), (outlier, "black", 400000)]
+    for store, color, price in rows:
+        db.add(StoreProductPrice(store_id=store.id, product_id=product.id, product_variant_id=variants[color].id,
+                                 source_type="official", price=price, collected_at=now))
+    db.commit()
+    monkeypatch.setattr(prices_router, "_accepted_price_keys",
+                        lambda _db, ids: {(product.id, good.id, 0), (product.id, other.id, 0)})
+    result = prices_router.get_color_prices(db)["products"]
+    assert len(result) == 1
+    row = result[0]
+    assert (row["model"], row["capacity"]) == ("iPhone 18 Pro", "256")
+    colors = {c["code"]: c for c in row["colors"]}
+    assert colors["black"]["price"] == 231000 and colors["black"]["store_count"] == 2
+    assert colors["silver"]["price"] == 228000 and colors["silver"]["store_count"] == 1
+    assert "glacier" not in colors
+    assert "store" not in str(result).replace("store_count", "")

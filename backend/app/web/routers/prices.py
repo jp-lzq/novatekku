@@ -354,6 +354,49 @@ def _assessment_data(db: Session) -> dict:
     }
 
 
+@router.get("/prices/colors")
+def get_color_prices(db: Session = Depends(get_db)):
+    """Best current price per model, capacity and colour (no store names).
+
+    Uses the same accepted-store rule as the assessment quote, so outlier
+    stores excluded from the market average are excluded here as well.
+    """
+    data = _assessment_data(db)
+    accepted = {
+        (product_id, store_id)
+        for product_id, store_id, _price in _accepted_price_keys(db, [product["id"] for product in data["products"]])
+    }
+    best: dict[int, dict] = {}
+    for offer in data["offers"]:
+        if (offer["product_id"], offer["store_id"]) not in accepted:
+            continue
+        entry = best.setdefault(offer["variant_id"], {"price": 0, "stores": set()})
+        entry["price"] = max(entry["price"], offer["price"])
+        entry["stores"].add(offer["store_id"])
+    products = []
+    for product in data["products"]:
+        colors = [
+            {
+                "code": color["code"],
+                "name_ja": color["name_ja"],
+                "name_en": color["name_en"],
+                "name_zh": color["name_zh"],
+                "price": best[color["variant_id"]]["price"],
+                "store_count": len(best[color["variant_id"]]["stores"]),
+            }
+            for color in product["colors"]
+            if color["variant_id"] in best
+        ]
+        if colors:
+            products.append({
+                "model": product["model"],
+                "capacity": product["capacity"],
+                "retail_price": product["retail_price"],
+                "colors": colors,
+            })
+    return {"products": products}
+
+
 @router.get("/prices/assessment")
 def get_assessment_prices(db: Session = Depends(get_db)):
     """Return the selectable catalog without exposing store price sources."""

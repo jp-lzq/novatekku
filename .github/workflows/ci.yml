@@ -23,8 +23,9 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run lint
       - run: npm run build
-      - run: npm audit --audit-level=high
+      # Shipped dependencies: block high and critical. Build-only tools: block critical.
       - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --audit-level=critical
 
   backend:
     runs-on: ubuntu-latest

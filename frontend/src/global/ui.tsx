@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n, type Language } from '../i18n'
 import { CURRENCIES, convert, formatMoney, type Currency } from './currency'
-import { COLORS, MARKETS, type Tab } from './markets'
+import { COLOR_HEX, MARKETS, isLarge, phoneShape, type Tab } from './markets'
 import { globalText } from './text'
 
 const TABS: Tab[] = ['global', 'jp', 'hk', 'us']
@@ -76,7 +76,7 @@ export function GlobalShell({
               key={value}
               to={tabHref(value)}
               data-testid={`tab-${value}`}
-              className={`flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm transition-colors ${
+              className={`flex shrink-0 items-center gap-1 border-b-2 px-2 py-2.5 text-[13px] transition-colors sm:gap-1.5 sm:px-3 sm:text-sm ${
                 tab === value ? 'border-emerald-400 font-semibold text-white' : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -99,6 +99,7 @@ export function Money({
   rates,
   size = 'md',
   emphasis = false,
+  compact = false,
 }: {
   amount: number | null | undefined
   from: Currency
@@ -106,12 +107,16 @@ export function Money({
   rates: Partial<Record<Currency, number>>
   size?: 'sm' | 'md' | 'lg'
   emphasis?: boolean
+  compact?: boolean // one line, no original amount (used in lists)
 }) {
   const { language } = useI18n()
   const text = globalText(language)
   if (amount == null) return <span className="text-sm text-slate-500">—</span>
   const converted = convert(amount, from, to, rates)
   const sizeClass = size === 'lg' ? 'text-2xl' : size === 'sm' ? 'text-sm' : 'text-lg'
+  if (compact) {
+    return <span className="font-semibold tabular-nums text-slate-200">{converted == null ? formatMoney(amount, from) : formatMoney(converted, to)}</span>
+  }
   return (
     <span className="inline-flex flex-col leading-tight">
       <span className={`${sizeClass} font-semibold tabular-nums ${emphasis ? 'text-emerald-300' : 'text-slate-50'}`}>
@@ -141,19 +146,94 @@ export function Diff({ amount, official, from, to, rates }: {
 }
 
 export function ColorDot({ color, size = 12 }: { color: string; size?: number }) {
-  const hex = COLORS[color]?.hex
-  if (!hex) return <span className="inline-block rounded-full bg-gradient-to-br from-slate-200 via-sky-300 to-rose-300" style={{ width: size, height: size }} />
-  return <span className="inline-block rounded-full ring-1 ring-white/30" style={{ width: size, height: size, background: hex }} />
+  return <span className="inline-block shrink-0 rounded-full ring-1 ring-white/30" style={{ width: size, height: size, background: COLOR_HEX[color] ?? '#8b93a1' }} />
 }
 
-/** Simple phone silhouette tinted with the colour (no product photos needed). */
-export function PhoneArt({ color, className = 'h-20 w-11' }: { color: string; className?: string }) {
-  const hex = COLORS[color]?.hex ?? '#8b93a1'
+function shade(hex: string, amount: number) {
+  const value = parseInt(hex.slice(1), 16)
+  const channel = (shift: number) => Math.max(0, Math.min(255, ((value >> shift) & 255) + amount))
+  return `rgb(${channel(16)},${channel(8)},${channel(0)})`
+}
+
+function Lens({ x, y, r, body }: { x: number; y: number; r: number; body: string }) {
   return (
-    <span className={`relative inline-block rounded-[10px] ring-1 ring-white/20 ${className}`} style={{ background: `linear-gradient(150deg, ${hex}, ${hex}cc 60%, #00000055)` }}>
-      <span className="absolute left-1 top-1 h-4 w-4 rounded-[5px] bg-black/35 ring-1 ring-white/15" />
-      <span className="absolute left-[7px] top-[7px] h-1.5 w-1.5 rounded-full bg-black/60" />
-    </span>
+    <g>
+      <circle cx={x} cy={y} r={r} fill={shade(body, -40)} stroke={shade(body, 30)} strokeWidth={0.8} />
+      <circle cx={x} cy={y} r={r * 0.62} fill="#0d0f14" />
+      <circle cx={x - r * 0.22} cy={y - r * 0.22} r={r * 0.16} fill="#ffffff" opacity={0.35} />
+    </g>
+  )
+}
+
+/** Back of the phone drawn per model family (camera layout and body proportions) in the finish colour. */
+export function PhoneArt({ model, color, width = 46 }: { model: string; color: string; width?: number }) {
+  const body = COLOR_HEX[color] ?? '#8b93a1'
+  const shape = phoneShape(model)
+  const h = isLarge(model) ? 100 : 94
+  const id = `g-${model.replace(/\W/g, '')}-${color}`
+  const camera = (() => {
+    switch (shape) {
+      case 'plateau':
+        return (
+          <g>
+            <rect x={3} y={6} width={44} height={24} rx={8} fill={shade(body, -14)} />
+            <rect x={5} y={8} width={23} height={20} rx={6} fill={shade(body, -26)} />
+            <Lens x={11} y={13.5} r={4} body={body} /><Lens x={11} y={23} r={4} body={body} /><Lens x={21} y={18.3} r={4} body={body} />
+            <circle cx={39} cy={13} r={1.6} fill="#f6e7b0" /><circle cx={39} cy={23} r={1.3} fill="#0d0f14" />
+          </g>
+        )
+      case 'air':
+        return (
+          <g>
+            <rect x={3} y={7} width={44} height={13} rx={6.5} fill={shade(body, -18)} />
+            <Lens x={11} y={13.5} r={4} body={body} /><circle cx={21} cy={13.5} r={1.4} fill="#f6e7b0" />
+          </g>
+        )
+      case 'pill':
+        return (
+          <g>
+            <rect x={6} y={6} width={12} height={23} rx={6} fill={shade(body, -18)} />
+            <Lens x={12} y={12} r={4} body={body} /><Lens x={12} y={23} r={4} body={body} />
+            <circle cx={22} cy={12} r={1.4} fill="#f6e7b0" />
+          </g>
+        )
+      case 'proTriple':
+        return (
+          <g>
+            <rect x={5} y={5} width={23} height={23} rx={6} fill={shade(body, -18)} />
+            <Lens x={11} y={11} r={4} body={body} /><Lens x={11} y={22} r={4} body={body} /><Lens x={21} y={16.5} r={4} body={body} />
+            <circle cx={22} cy={8.5} r={1.3} fill="#f6e7b0" />
+          </g>
+        )
+      case 'diagonal':
+        return (
+          <g>
+            <rect x={5} y={5} width={21} height={21} rx={6} fill={shade(body, -18)} />
+            <Lens x={11} y={11} r={4} body={body} /><Lens x={20} y={20} r={4} body={body} />
+            <circle cx={21} cy={10} r={1.3} fill="#f6e7b0" />
+          </g>
+        )
+      default:
+        return (
+          <g>
+            <Lens x={11} y={11} r={4.4} body={body} /><circle cx={20} cy={11} r={1.3} fill="#f6e7b0" />
+          </g>
+        )
+    }
+  })()
+  return (
+    <svg width={width} height={(width * h) / 50} viewBox={`0 0 50 ${h}`} role="img" aria-label={`${model} ${color}`}>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={shade(body, 22)} />
+          <stop offset="0.55" stopColor={body} />
+          <stop offset="1" stopColor={shade(body, -30)} />
+        </linearGradient>
+      </defs>
+      <rect x={0.75} y={0.75} width={48.5} height={h - 1.5} rx={9} fill={`url(#${id})`} stroke={shade(body, 40)} strokeOpacity={0.5} strokeWidth={1.2} />
+      {camera}
+      <path d={`M21 ${h / 2 + 4} a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0`} fill={shade(body, -10)} opacity={0.5} />
+    </svg>
   )
 }
 

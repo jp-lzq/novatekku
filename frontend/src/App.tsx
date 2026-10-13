@@ -24,7 +24,7 @@ const LegalPage = lazy(() => import('./pages/LegalPage'))
 const CompanyHome = lazy(() => import('./pages/CompanyHome'))
 const DevelopmentLogPage = lazy(() => import('./pages/DevelopmentLogPage'))
 const Global = lazy(() => import('./pages/Global'))
-const GlobalModel = lazy(() => import('./pages/GlobalModel'))
+const GlobalRedirect = lazy(() => import('./pages/GlobalRedirect'))
 
 const isCompanySite = import.meta.env.VITE_SITE_MODE === 'company'
 
@@ -95,7 +95,7 @@ function App() {
           <Route path="/admin/collection-sources" element={<AdminCollectionSources />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/global" element={<Global />} />
-          <Route path="/global/:slug" element={<GlobalModel />} />
+          <Route path="/global/:slug" element={<GlobalRedirect />} />
           <Route path="/company" element={<LegalPage />} />
           <Route path="/notice" element={<LegalPage />} />
           <Route path="/privacy" element={<LegalPage />} />
