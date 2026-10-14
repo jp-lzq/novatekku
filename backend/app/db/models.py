@@ -197,6 +197,28 @@ class CollectionSource(Base):
     )
 
 
+class MarketPrice(Base):
+    """海外市場（香港・アメリカなど）の新品買取価格。収集実行ごとのスナップショット。"""
+    __tablename__ = "market_prices"
+
+    id = Column(Integer, primary_key=True)
+    market = Column(String(8), nullable=False, index=True)  # hk / us
+    source = Column(String(40), nullable=False)
+    model = Column(String(100), nullable=False)
+    capacity = Column(String(20), nullable=False)
+    color_code = Column(String(80), nullable=True)  # NULL when the source does not price colours
+    price = Column(Integer, nullable=False)
+    currency = Column(String(3), nullable=False)
+    official_price = Column(Integer, nullable=True)
+    offers = Column(Integer, nullable=False, default=1, server_default="1")
+    run_id = Column(Integer, ForeignKey("collection_runs.id", ondelete="SET NULL"), nullable=True, index=True)
+    collected_at = Column(DateTime(timezone=True), nullable=False, index=True)
+
+    __table_args__ = (
+        Index("ix_market_prices_lookup", "market", "source", "collected_at"),
+    )
+
+
 class CollectionRun(Base):
     """表計算シート・公式サイト価格収集の実行記録。"""
     __tablename__ = "collection_runs"

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from math import sqrt
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import (
     DailyHighPrice,
+    MarketPrice,
     Price,
     PriceHistory,
     Product,
@@ -395,6 +396,63 @@ def get_color_prices(db: Session = Depends(get_db)):
                 "colors": colors,
             })
     return {"products": products}
+
+
+MARKET_CURRENCY = {"hk": "HKD", "us": "USD"}
+MARKET_MAX_AGE_HOURS = 48
+
+
+@router.get("/prices/markets")
+def get_market_prices(
+    market: str = Query(..., pattern="^(hk|us)$"),
+    db: Session = Depends(get_db),
+):
+    """Overseas new-device buyback prices: best price per model/capacity/colour.
+
+    Each source contributes its latest snapshot (if younger than 48 hours).
+    store_count = number of buyers behind the price (sources × offers).
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=MARKET_MAX_AGE_HOURS)
+    latest = dict(
+        db.query(MarketPrice.source, func.max(MarketPrice.collected_at))
+        .filter(MarketPrice.market == market, MarketPrice.collected_at >= cutoff)
+        .group_by(MarketPrice.source)
+        .all()
+    )
+    rows = []
+    for source, collected_at in latest.items():
+        rows += db.query(MarketPrice).filter(
+            MarketPrice.market == market,
+            MarketPrice.source == source,
+            MarketPrice.collected_at == collected_at,
+        ).all()
+
+    cells: dict[tuple[str, str], dict] = {}
+    for row in rows:
+        product = cells.setdefault((row.model, row.capacity), {"official": None, "colors": {}})
+        if row.official_price:
+            product["official"] = product["official"] or row.official_price
+        cell = product["colors"].setdefault(row.color_code, {"price": 0, "store_count": 0})
+        cell["price"] = max(cell["price"], row.price)
+        cell["store_count"] += max(row.offers, 1)
+
+    return {
+        "market": market,
+        "currency": MARKET_CURRENCY[market],
+        "updated_at": max(latest.values()).isoformat() if latest else None,
+        "products": [
+            {
+                "model": model,
+                "capacity": capacity,
+                "official_price": data["official"],
+                "colors": [
+                    {"code": code, **cell}
+                    for code, cell in sorted(data["colors"].items(), key=lambda item: item[0] or "")
+                ],
+            }
+            for (model, capacity), data in sorted(cells.items())
+        ],
+    }
 
 
 @router.get("/prices/assessment")

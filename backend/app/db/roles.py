@@ -35,6 +35,7 @@ PRICE_TABLES = (
     "official_product_mappings",
     "collection_runs",
     "price_collection_sources",
+    "market_prices",
 )
 SOURCE_TABLES = ("collection_sources",)
 

@@ -597,7 +597,7 @@ def admin_ai_history(
 def admin_collection_runs(
     response: Response,
     limit: int = Query(default=100, ge=1, le=500),
-    source_type: str | None = Query(default=None, pattern="^(sheet|official)$"),
+    source_type: str | None = Query(default=None, pattern="^(sheet|official|market_hk|market_us)$"),
     _: AuthContext = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -639,7 +639,10 @@ def admin_collection_sources(
     )
     items = []
     for source in sources:
-        run = latest.get((source.kind, source.name))
+        run_type = source.kind
+        if source.kind == "market":  # market runs are logged per market (market_hk / market_us)
+            run_type = f"market_{json.loads(source.options or '{}').get('market', '')}"
+        run = latest.get((run_type, source.name))
         items.append({
             "id": source.id,
             "kind": source.kind,

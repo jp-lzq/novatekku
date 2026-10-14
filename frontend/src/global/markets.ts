@@ -133,49 +133,54 @@ export function japanBoards(rows: ColorPriceRow[]): MarketBoard[] {
 }
 
 // ---------------------------------------------------------------------------
-// Sample data for Hong Kong and the United States, shown with a "sample" badge
-// until collection for these markets exists. Hong Kong iPhone 18 Pro follows a
-// Sin Tat Plaza price board; other values are illustrative.
+// Hong Kong / United States: live data from /api/v1/prices/markets.
 // ---------------------------------------------------------------------------
 
-const PRO_18_COLORS: MarketColor[] = [
-  { code: 'black', name: { ja: 'ブラック', zh: '黑色', en: 'Black' } },
-  { code: 'silver', name: { ja: 'シルバー', zh: '银色', en: 'Silver' } },
-  { code: 'glacier', name: { ja: 'グレイシャー', zh: '冰川蓝色', en: 'Glacier' } },
-  { code: 'burgundy', name: { ja: 'バーガンディ', zh: '勃艮第酒红色', en: 'Burgundy' } },
-]
+export const ALL_COLORS = 'all'
 
-function sampleBoard(market: 'hk' | 'us', model: string, official: Record<string, number>, rows: Record<string, number[]>): MarketBoard {
-  const prices: MarketBoard['prices'] = {}
-  for (const [capacity, values] of Object.entries(rows)) {
-    prices[capacity] = Object.fromEntries(PRO_18_COLORS.map((color, index) => [color.code, values[index]]))
-  }
-  return { market, currency: MARKETS[market].currency, model, colors: PRO_18_COLORS, official, prices, sample: true }
+export interface MarketPriceResponse {
+  market: 'hk' | 'us'
+  currency: Currency
+  updated_at: string | null
+  products: { model: string; capacity: string; official_price: number | null; colors: { code: string | null; price: number; store_count: number }[] }[]
 }
 
-export const SAMPLE_BOARDS: MarketBoard[] = [
-  sampleBoard('hk', 'iPhone 18 Pro', { '256': 10499, '512': 12299, '1TB': 15799, '2TB': 20999 }, {
-    '256': [9800, 9600, 9620, 9850],
-    '512': [11760, 11300, 11300, 11720],
-    '1TB': [15400, 15400, 15350, 15400],
-    '2TB': [19000, 19000, 19000, 19000],
-  }),
-  sampleBoard('hk', 'iPhone 18 Pro Max', { '256': 11299, '512': 13099, '1TB': 16599, '2TB': 21799 }, {
-    '256': [11800, 11750, 11760, 11840],
-    '512': [13400, 13250, 13300, 13450],
-    '1TB': [16500, 16450, 16450, 16500],
-    '2TB': [20500, 20500, 20500, 20500],
-  }),
-  sampleBoard('us', 'iPhone 18 Pro', { '256': 1099, '512': 1299, '1TB': 1499, '2TB': 1899 }, {
-    '256': [900, 885, 890, 905],
-    '512': [1010, 995, 1000, 1015],
-    '1TB': [1150, 1140, 1140, 1150],
-    '2TB': [1420, 1420, 1410, 1420],
-  }),
-  sampleBoard('us', 'iPhone 18 Pro Max', { '256': 1199, '512': 1399, '1TB': 1599, '2TB': 1999 }, {
-    '256': [1070, 1055, 1060, 1065],
-    '512': [1180, 1170, 1175, 1185],
-    '1TB': [1320, 1310, 1310, 1320],
-    '2TB': [1640, 1640, 1630, 1640],
-  }),
-]
+/** Colour names come from the Japanese catalogue of the same model; unknown codes are title-cased. */
+export function overseasBoards(response: MarketPriceResponse, names: Map<string, ColorName>): MarketBoard[] {
+  const order_ = new Map([...names.keys()].map((key, index) => [key, index]))
+  const boards = new Map<string, MarketBoard>()
+  for (const row of response.products) {
+    let board = boards.get(row.model)
+    if (!board) {
+      board = { market: response.market, currency: response.currency, model: row.model, colors: [], official: {}, prices: {}, storeCount: {}, sample: false }
+      boards.set(row.model, board)
+    }
+    board.official[row.capacity] = row.official_price
+    board.prices[row.capacity] = {}
+    board.storeCount![row.capacity] = {}
+    for (const color of row.colors) {
+      const code = color.code ?? ALL_COLORS
+      if (!board.colors.some((item) => item.code === code)) {
+        const fallback = code.replace(/(^|-)(\w)/g, (_m, dash: string, ch: string) => (dash ? ' ' : '') + ch.toUpperCase())
+        const name = code === ALL_COLORS ? null : names.get(`${row.model}|${code}`)
+        board.colors.push({ code, name: name ?? { ja: code === ALL_COLORS ? '全色共通' : fallback, zh: code === ALL_COLORS ? '全色通用' : fallback, en: code === ALL_COLORS ? 'All colors' : fallback } })
+      }
+      board.prices[row.capacity][code] = color.price
+      board.storeCount![row.capacity][code] = color.store_count
+    }
+  }
+  // same colour order as the Japanese catalogue (black, silver, glacier, burgundy, ...)
+  for (const board of boards.values()) {
+    const order = (code: string) => {
+      const index = order_.get(`${board.model}|${code}`)
+      return index === undefined ? 999 : index
+    }
+    board.colors.sort((a, b) => order(a.code) - order(b.code))
+  }
+  return [...boards.values()]
+}
+
+/** Generation number used to group the model list ("iPhone 17 Air" → 17). */
+export function generationOf(model: string) {
+  return Number(model.match(/iPhone (\d+)/)?.[1] ?? 0)
+}

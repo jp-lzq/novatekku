@@ -37,8 +37,12 @@ export function MarketTable({ board, currency, rates }: { board: MarketBoard; cu
               <tr key={capacity} className="border-t border-white/10">
                 <td className="sticky left-0 z-10 bg-[#121317] px-3 py-4 align-top sm:px-4">
                   <p className="text-lg font-medium">{capacityLabel(capacity)}</p>
-                  <p className="mt-0.5 text-xs text-slate-500">{text.officialPrice}</p>
-                  {official ? <Money amount={official} from={board.currency} to={currency} rates={rates} size="sm" /> : <span className="text-xs text-slate-600">—</span>}
+                  {official ? (
+                    <>
+                      <p className="mt-0.5 text-xs text-slate-500">{text.officialPrice}</p>
+                      <Money amount={official} from={board.currency} to={currency} rates={rates} size="sm" />
+                    </>
+                  ) : null}
                 </td>
                 {board.colors.map((color) => {
                   const amount = board.prices[capacity]?.[color.code]

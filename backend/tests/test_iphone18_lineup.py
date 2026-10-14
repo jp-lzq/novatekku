@@ -108,3 +108,36 @@ def test_color_prices_use_accepted_stores_and_hide_store_names(db, monkeypatch):
     assert colors["silver"]["price"] == 228000 and colors["silver"]["store_count"] == 1
     assert "glacier" not in colors
     assert "store" not in str(result).replace("store_count", "")
+
+
+def test_market_prices_take_best_price_and_count_buyers(db):
+    from app.db.models import MarketPrice
+    from app.web.routers import prices as prices_router
+    now = datetime.now(timezone.utc)
+    old = now - timedelta(hours=3)
+    rows = [
+        # two Hong Kong sources, latest snapshot of each
+        ("iphonepricehk", now, "black", 11800, 11299, 1),
+        ("debitbaba", now, "black", 11840, None, 1),
+        ("debitbaba", now, "silver", 11750, None, 1),
+        ("iphonepricehk", old, "black", 99999, 11299, 1),  # older snapshot is ignored
+    ]
+    for source, at, color, price, official, offers in rows:
+        db.add(MarketPrice(market="hk", source=source, model="iPhone 18 Pro Max", capacity="256", color_code=color,
+                           price=price, currency="HKD", official_price=official, offers=offers, collected_at=at))
+    db.add(MarketPrice(market="us", source="bankmycell", model="iPhone 18 Pro Max", capacity="256", color_code=None,
+                       price=1070, currency="USD", offers=9, collected_at=now))
+    db.add(MarketPrice(market="hk", source="stale", model="iPhone 18 Pro Max", capacity="256", color_code="black",
+                       price=50000, currency="HKD", collected_at=now - timedelta(days=3)))
+    db.commit()
+
+    hk = prices_router.get_market_prices("hk", db)
+    assert hk["currency"] == "HKD"
+    product = hk["products"][0]
+    assert (product["model"], product["capacity"], product["official_price"]) == ("iPhone 18 Pro Max", "256", 11299)
+    colors = {c["code"]: c for c in product["colors"]}
+    assert colors["black"] == {"code": "black", "price": 11840, "store_count": 2}
+    assert colors["silver"] == {"code": "silver", "price": 11750, "store_count": 1}
+
+    us = prices_router.get_market_prices("us", db)
+    assert us["products"][0]["colors"] == [{"code": None, "price": 1070, "store_count": 9}]

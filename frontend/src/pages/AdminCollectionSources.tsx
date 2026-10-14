@@ -26,7 +26,7 @@ interface CollectionSource {
   last_success_at?: string | null
 }
 
-const kindLabels: Record<string, string> = { official: '公式サイト', sheet: '表データ', apple_retail: 'Apple 定価' }
+const kindLabels: Record<string, string> = { official: '公式サイト', sheet: '表データ', apple_retail: 'Apple 定価', market: '海外市場' }
 const statusStyles: Record<string, string> = {
   success: 'bg-emerald-50 text-emerald-700',
   partial: 'bg-amber-50 text-amber-700',
