@@ -319,6 +319,7 @@ def _assessment_data(db: Session) -> dict:
                 "product_id": product_id,
                 "variant_id": variant.id,
                 "price": chosen.price,
+                "exact": bool(exact),  # False: the store quotes one price for every colour
             })
 
     return {
@@ -359,21 +360,25 @@ def _assessment_data(db: Session) -> dict:
 def get_color_prices(db: Session = Depends(get_db)):
     """Best current price per model, capacity and colour (no store names).
 
-    Uses the same accepted-store rule as the assessment quote, so outlier
-    stores excluded from the market average are excluded here as well.
+    Stores that quote each colour separately fill the colour columns; stores
+    that quote one price for every colour are summarised in ``all_colors``, so
+    colour price differences stay visible.  Uses the same accepted-store rule
+    as the assessment quote (outlier stores are excluded).
     """
     data = _assessment_data(db)
     accepted = {
         (product_id, store_id)
         for product_id, store_id, _price in _accepted_price_keys(db, [product["id"] for product in data["products"]])
     }
-    best: dict[int, dict] = {}
+    by_color: dict[int, dict] = {}
+    any_color: dict[int, dict] = {}
     for offer in data["offers"]:
         if (offer["product_id"], offer["store_id"]) not in accepted:
             continue
-        entry = best.setdefault(offer["variant_id"], {"price": 0, "stores": set()})
-        entry["price"] = max(entry["price"], offer["price"])
-        entry["stores"].add(offer["store_id"])
+        bucket = by_color.setdefault(offer["variant_id"], {"price": 0, "stores": set()}) if offer["exact"] \
+            else any_color.setdefault(offer["product_id"], {"price": 0, "stores": set()})
+        bucket["price"] = max(bucket["price"], offer["price"])
+        bucket["stores"].add(offer["store_id"])
     products = []
     for product in data["products"]:
         colors = [
@@ -382,18 +387,19 @@ def get_color_prices(db: Session = Depends(get_db)):
                 "name_ja": color["name_ja"],
                 "name_en": color["name_en"],
                 "name_zh": color["name_zh"],
-                "price": best[color["variant_id"]]["price"],
-                "store_count": len(best[color["variant_id"]]["stores"]),
+                "price": by_color[color["variant_id"]]["price"] if color["variant_id"] in by_color else None,
+                "store_count": len(by_color[color["variant_id"]]["stores"]) if color["variant_id"] in by_color else 0,
             }
             for color in product["colors"]
-            if color["variant_id"] in best
         ]
-        if colors:
+        shared = any_color.get(product["id"])
+        if shared or any(color["price"] is not None for color in colors):
             products.append({
                 "model": product["model"],
                 "capacity": product["capacity"],
                 "retail_price": product["retail_price"],
                 "colors": colors,
+                "all_colors": {"price": shared["price"], "store_count": len(shared["stores"])} if shared else None,
             })
     return {"products": products}
 

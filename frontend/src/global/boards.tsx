@@ -1,7 +1,7 @@
 import { useI18n } from '../i18n'
 import { convert, type Currency } from './currency'
 import type { ModelBoards } from './data'
-import { MARKETS, bestPrice, capacityLabel, sortCapacities, type MarketBoard, type MarketId } from './markets'
+import { ALL_COLORS, MARKETS, bestPrice, capacityLabel, sortCapacities, type MarketBoard, type MarketId } from './markets'
 import { globalText } from './text'
 import { ColorDot, Diff, Money, PhoneArt, SampleBadge } from './ui'
 
@@ -20,7 +20,7 @@ export function MarketTable({ board, currency, rates }: { board: MarketBoard; cu
           <tr>
             <th className="sticky left-0 z-10 w-28 bg-[#121317] sm:w-36" />
             {board.colors.map((color) => (
-              <th key={color.code} className="px-3 pb-3 pt-5 text-left align-bottom font-normal">
+              <th key={color.code} className={`px-3 pb-3 pt-5 text-left align-bottom font-normal ${color.code === ALL_COLORS ? 'border-l border-white/10' : ''}`}>
                 <PhoneArt model={board.model} color={color.code} />
                 <p className="mt-2 text-sm text-slate-300">{color.name[language]}</p>
               </th>
@@ -48,7 +48,7 @@ export function MarketTable({ board, currency, rates }: { board: MarketBoard; cu
                   const amount = board.prices[capacity]?.[color.code]
                   const stores = board.storeCount?.[capacity]?.[color.code]
                   return (
-                    <td key={color.code} className="px-3 py-4 align-top">
+                    <td key={color.code} className={`px-3 py-4 align-top ${color.code === ALL_COLORS ? 'border-l border-white/10' : ''}`}>
                       {amount == null ? <span className="text-sm text-slate-600">—</span> : (
                         <div className="flex flex-col gap-0.5">
                           <span className="flex items-center gap-1.5 text-xs text-slate-500">

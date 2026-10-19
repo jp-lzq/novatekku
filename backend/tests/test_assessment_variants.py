@@ -72,6 +72,8 @@ def test_assessment_uses_exact_color_and_default_store_price():
         }
         assert len(default_offers) == 3
         assert {row["price"] for row in default_offers} == {197000}
-        assert all(set(row) == {"store_id", "product_id", "variant_id", "price"} for row in private_data["offers"])
+        assert all(set(row) == {"store_id", "product_id", "variant_id", "price", "exact"} for row in private_data["offers"])
+        assert all(row["exact"] for row in colored_offers)
+        assert not any(row["exact"] for row in default_offers)
     finally:
         db.close()

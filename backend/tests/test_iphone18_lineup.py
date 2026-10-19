@@ -83,31 +83,32 @@ def test_new_products_keep_color_fallback_and_24_hour_expiry(db):
     assert {row["price"] for row in offers} == {230000}
 
 
-def test_color_prices_use_accepted_stores_and_hide_store_names(db, monkeypatch):
+def test_color_prices_separate_colour_quotes_from_all_colour_quotes(db, monkeypatch):
     from app.web.routers import prices as prices_router
     sync_announced_lineup(db, LINEUP_RETAIL_PRICES)
     product = db.query(Product).filter_by(model="iPhone 18 Pro", capacity="256").one()
     variants = {v.color_code: v for v in db.query(ProductVariant).filter_by(product_id=product.id)}
-    good, other, outlier = Store(name="Good", is_active=1), Store(name="Other", is_active=1), Store(name="Outlier", is_active=1)
-    db.add_all([good, other, outlier])
+    good, other, flat, outlier = (Store(name=n, is_active=1) for n in ("Good", "Other", "Flat", "Outlier"))
+    db.add_all([good, other, flat, outlier])
     db.flush()
     now = datetime.now(timezone.utc)
-    rows = [(good, "black", 230000), (good, "silver", 228000), (other, "black", 231000), (outlier, "black", 400000)]
-    for store, color, price in rows:
+    for store, color, price in [(good, "black", 230000), (good, "silver", 228000), (other, "black", 231000), (outlier, "black", 400000)]:
         db.add(StoreProductPrice(store_id=store.id, product_id=product.id, product_variant_id=variants[color].id,
                                  source_type="official", price=price, collected_at=now))
+    # "Flat" quotes one price for any colour
+    db.add(StoreProductPrice(store_id=flat.id, product_id=product.id, product_variant_id=None,
+                             source_type="official", price=233000, collected_at=now))
     db.commit()
     monkeypatch.setattr(prices_router, "_accepted_price_keys",
-                        lambda _db, ids: {(product.id, good.id, 0), (product.id, other.id, 0)})
+                        lambda _db, ids: {(product.id, s.id, 0) for s in (good, other, flat)})
     result = prices_router.get_color_prices(db)["products"]
-    assert len(result) == 1
-    row = result[0]
-    assert (row["model"], row["capacity"]) == ("iPhone 18 Pro", "256")
+    row = next(r for r in result if (r["model"], r["capacity"]) == ("iPhone 18 Pro", "256"))
     colors = {c["code"]: c for c in row["colors"]}
-    assert colors["black"]["price"] == 231000 and colors["black"]["store_count"] == 2
-    assert colors["silver"]["price"] == 228000 and colors["silver"]["store_count"] == 1
-    assert "glacier" not in colors
-    assert "store" not in str(result).replace("store_count", "")
+    assert (colors["black"]["price"], colors["black"]["store_count"]) == (231000, 2)
+    assert (colors["silver"]["price"], colors["silver"]["store_count"]) == (228000, 1)
+    assert colors["glacier"]["price"] is None and colors["glacier"]["store_count"] == 0
+    assert row["all_colors"] == {"price": 233000, "store_count": 1}
+    assert "store_id" not in str(result) and "Good" not in str(result)
 
 
 def test_market_prices_take_best_price_and_count_buyers(db):

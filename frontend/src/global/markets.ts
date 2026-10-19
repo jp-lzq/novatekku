@@ -102,11 +102,15 @@ export function compareModels(a: string, b: string) {
 // Japan: live best price per model / capacity / colour from /api/v1/prices/colors.
 // ---------------------------------------------------------------------------
 
+export const ALL_COLORS = 'all'
+export const ALL_COLORS_NAME: ColorName = { ja: '全色共通', zh: '全色通用', en: 'All colors' }
+
 export interface ColorPriceRow {
   model: string
   capacity: string
   retail_price: number | null
-  colors: { code: string; name_ja: string; name_en: string; name_zh: string; price: number; store_count: number }[]
+  colors: { code: string; name_ja: string; name_en: string; name_zh: string; price: number | null; store_count: number }[]
+  all_colors?: { price: number; store_count: number } | null // stores quoting one price for every colour
 }
 
 export function japanBoards(rows: ColorPriceRow[]): MarketBoard[] {
@@ -125,8 +129,20 @@ export function japanBoards(rows: ColorPriceRow[]): MarketBoard[] {
       if (!board.colors.some((item) => item.code === color.code)) {
         board.colors.push({ code: color.code, name: { ja: color.name_ja, en: color.name_en, zh: color.name_zh } })
       }
-      board.prices[row.capacity][color.code] = color.price
-      board.storeCount![row.capacity][color.code] = color.store_count
+      if (color.price != null) {
+        board.prices[row.capacity][color.code] = color.price
+        board.storeCount![row.capacity][color.code] = color.store_count
+      }
+    }
+    if (row.all_colors) {
+      board.prices[row.capacity][ALL_COLORS] = row.all_colors.price
+      board.storeCount![row.capacity][ALL_COLORS] = row.all_colors.store_count
+    }
+  }
+  // colour columns first, then one "all colours" column when any store quotes a single price
+  for (const board of boards.values()) {
+    if (Object.values(board.prices).some((cells) => ALL_COLORS in cells)) {
+      board.colors.push({ code: ALL_COLORS, name: ALL_COLORS_NAME })
     }
   }
   return [...boards.values()]
@@ -135,8 +151,6 @@ export function japanBoards(rows: ColorPriceRow[]): MarketBoard[] {
 // ---------------------------------------------------------------------------
 // Hong Kong / United States: live data from /api/v1/prices/markets.
 // ---------------------------------------------------------------------------
-
-export const ALL_COLORS = 'all'
 
 export interface MarketPriceResponse {
   market: 'hk' | 'us'
@@ -163,7 +177,7 @@ export function overseasBoards(response: MarketPriceResponse, names: Map<string,
       if (!board.colors.some((item) => item.code === code)) {
         const fallback = code.replace(/(^|-)(\w)/g, (_m, dash: string, ch: string) => (dash ? ' ' : '') + ch.toUpperCase())
         const name = code === ALL_COLORS ? null : names.get(`${row.model}|${code}`)
-        board.colors.push({ code, name: name ?? { ja: code === ALL_COLORS ? '全色共通' : fallback, zh: code === ALL_COLORS ? '全色通用' : fallback, en: code === ALL_COLORS ? 'All colors' : fallback } })
+        board.colors.push({ code, name: code === ALL_COLORS ? ALL_COLORS_NAME : name ?? { ja: fallback, zh: fallback, en: fallback } })
       }
       board.prices[row.capacity][code] = color.price
       board.storeCount![row.capacity][code] = color.store_count
