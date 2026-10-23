@@ -125,9 +125,10 @@ STANDARD_MODEL_COLORS["iPhone 16 Plus"] = STANDARD_MODEL_COLORS["iPhone 16"]
 STANDARD_MODEL_COLORS["iPhone 16 Pro Max"] = STANDARD_MODEL_COLORS["iPhone 16 Pro"]
 STANDARD_MODEL_COLORS["iPhone 17 Pro Max"] = STANDARD_MODEL_COLORS["iPhone 17 Pro"]
 for _model in LINEUP["models"]:
+    # A model may define its own colours (e.g. iPhone Duo); otherwise the shared lineup colours apply.
     STANDARD_MODEL_COLORS[_model["name"]] = tuple(
         _color(color["code"], color["ja"], color["en"], color["zh"], *color["aliases"])
-        for color in LINEUP["colors"]
+        for color in _model.get("colors", LINEUP["colors"])
     )
 MATCHER_VERSION = "catalog-v2"
 PRICE_INDEX_LOCK_ID = 7_841_700_021

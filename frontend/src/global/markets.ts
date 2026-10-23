@@ -31,6 +31,7 @@ export const COLOR_HEX: Record<string, string> = {
   pink: '#f1c5cf', teal: '#8ec1bc', ultramarine: '#6976d5',
   'blue-titanium': '#3e4a5b', blue: '#cddae3', green: '#cfdbca', yellow: '#efe5b6',
   gold: '#f0e1c5', 'deep-purple': '#594a61', midnight: '#2b2f37', starlight: '#f1ebdf', purple: '#d6c8e3', 'product-red': '#c71f2e',
+  'star-white': '#eceae4', 'night-sky': '#1e2738',
 }
 
 export type ColorName = Record<Language, string>
@@ -76,9 +77,10 @@ export function basePrice(board: MarketBoard) {
 }
 
 /** Camera / body layout used to draw each model. */
-export type PhoneShape = 'plateau' | 'air' | 'pill' | 'proTriple' | 'diagonal' | 'single'
+export type PhoneShape = 'fold' | 'plateau' | 'air' | 'pill' | 'proTriple' | 'diagonal' | 'single'
 
 export function phoneShape(model: string): PhoneShape {
+  if (/Duo/.test(model)) return 'fold'
   if (/^iPhone 1[78] Pro/.test(model)) return 'plateau'
   if (/Air/.test(model)) return 'air'
   if (/1[67]e$/.test(model)) return 'single'
@@ -93,8 +95,8 @@ export function isLarge(model: string) {
 
 /** Newest generation and bigger variants first. */
 export function compareModels(a: string, b: string) {
-  const generation = (model: string) => Number(model.match(/iPhone (\d+)/)?.[1] ?? 0)
-  const rank = (model: string) => (/Pro Max/.test(model) ? 0 : /Pro/.test(model) ? 1 : /Air/.test(model) ? 2 : /Plus/.test(model) ? 3 : /e$/.test(model) ? 5 : 4)
+  const generation = generationOf
+  const rank = (model: string) => (/Duo/.test(model) ? -1 : /Pro Max/.test(model) ? 0 : /Pro/.test(model) ? 1 : /Air/.test(model) ? 2 : /Plus/.test(model) ? 3 : /e$/.test(model) ? 5 : 4)
   return generation(b) - generation(a) || rank(a) - rank(b) || a.localeCompare(b)
 }
 
@@ -196,5 +198,6 @@ export function overseasBoards(response: MarketPriceResponse, names: Map<string,
 
 /** Generation number used to group the model list ("iPhone 17 Air" → 17). */
 export function generationOf(model: string) {
+  if (/iPhone Duo/.test(model)) return 18 // the foldable launched with the 18 series
   return Number(model.match(/iPhone (\d+)/)?.[1] ?? 0)
 }

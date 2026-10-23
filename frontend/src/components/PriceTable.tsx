@@ -72,7 +72,7 @@ const DEFAULT_FX_RATES = {
   EUR: { rate: 183.49, symbol: '€', flag: '🇪🇺' },
 } as const
 
-const MODEL_VARIANT_PRIORITY = ['Pro Max', 'Pro', 'Plus', 'Air', 'mini', 'e'] as const
+const MODEL_VARIANT_PRIORITY = ['Duo', 'Pro Max', 'Pro', 'Plus', 'Air', 'mini', 'e'] as const
 
 function getCapacityOrder(capacity: string): number {
   const normalized = capacity?.toUpperCase().replace(/\s/g, '') || ''
@@ -113,6 +113,7 @@ function getProfit(price: number, retailPrice: number | null): number | null {
 }
 
 function getModelFamily(model: string): string {
+  if (/iPhone\s*Duo/i.test(model)) return 'iPhone 18' // the foldable launched with the 18 series
   const match = model.match(/iPhone\s*(\d+)/i)
   return match ? `iPhone ${match[1]}` : 'Other'
 }
@@ -135,7 +136,7 @@ function getModelPriority(model: string): number {
 }
 
 function sortModelTitles(a: string, b: string): number {
-  const familyDiff = getFamilyNumber(b) - getFamilyNumber(a)
+  const familyDiff = getFamilyNumber(getModelFamily(b)) - getFamilyNumber(getModelFamily(a))
   if (familyDiff !== 0) return familyDiff
 
   const variantDiff = getModelPriority(a) - getModelPriority(b)

@@ -169,10 +169,20 @@ function Lens({ x, y, r, body }: { x: number; y: number; r: number; body: string
 export function PhoneArt({ model, color, width = 46 }: { model: string; color: string; width?: number }) {
   const body = COLOR_HEX[color] ?? '#8b93a1'
   const shape = phoneShape(model)
-  const h = isLarge(model) ? 100 : 94
+  const h = shape === 'fold' ? 88 : isLarge(model) ? 100 : 94
+  const w = shape === 'fold' ? 76 : 50 // the foldable is drawn opened: two panels side by side
   const id = `g-${model.replace(/\W/g, '')}-${color}`
   const camera = (() => {
     switch (shape) {
+      case 'fold':
+        return (
+          <g>
+            <line x1={38} y1={2} x2={38} y2={h - 2} stroke={shade(body, -35)} strokeWidth={1.4} />
+            <rect x={3} y={6} width={31} height={15} rx={7} fill={shade(body, -18)} />
+            <Lens x={10} y={13.5} r={4} body={body} /><Lens x={20} y={13.5} r={4} body={body} />
+            <circle cx={29} cy={13.5} r={1.4} fill="#f6e7b0" />
+          </g>
+        )
       case 'plateau':
         return (
           <g>
@@ -222,7 +232,7 @@ export function PhoneArt({ model, color, width = 46 }: { model: string; color: s
     }
   })()
   return (
-    <svg width={width} height={(width * h) / 50} viewBox={`0 0 50 ${h}`} role="img" aria-label={`${model} ${color}`}>
+    <svg width={(width * w) / 50} height={(width * h) / 50} viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${model} ${color}`}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor={shade(body, 22)} />
@@ -230,9 +240,9 @@ export function PhoneArt({ model, color, width = 46 }: { model: string; color: s
           <stop offset="1" stopColor={shade(body, -30)} />
         </linearGradient>
       </defs>
-      <rect x={0.75} y={0.75} width={48.5} height={h - 1.5} rx={9} fill={`url(#${id})`} stroke={shade(body, 40)} strokeOpacity={0.5} strokeWidth={1.2} />
+      <rect x={0.75} y={0.75} width={w - 1.5} height={h - 1.5} rx={9} fill={`url(#${id})`} stroke={shade(body, 40)} strokeOpacity={0.5} strokeWidth={1.2} />
       {camera}
-      <path d={`M21 ${h / 2 + 4} a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0`} fill={shade(body, -10)} opacity={0.5} />
+      <path d={`M${w / 2 - (shape === 'fold' ? -15 : 4)} ${h / 2 + 4} a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0`} fill={shade(body, -10)} opacity={0.5} />
     </svg>
   )
 }

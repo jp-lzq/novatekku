@@ -25,7 +25,7 @@ def test_lineup_is_additive_and_idempotent(db):
     db.add(old)
     db.commit()
     old_values = (old.id, old.created_at, old.updated_at, old.retail_price)
-    assert len(sync_announced_lineup(db, LINEUP_RETAIL_PRICES)) == 8
+    assert len(sync_announced_lineup(db, LINEUP_RETAIL_PRICES)) == 12  # 18 Pro, 18 Pro Max, Duo × 4 capacities
     db.commit()
     assert sync_announced_lineup(db, LINEUP_RETAIL_PRICES) == []
     db.commit()
@@ -41,7 +41,9 @@ def test_lineup_is_additive_and_idempotent(db):
     catalog = get_assessment_prices(db)["products"]
     new_products = [row for row in catalog if row["model"].startswith("iPhone 18")]
     assert len(new_products) == 8
-    assert {(row["model"], row["capacity"]): row["retail_price"] for row in new_products} == LINEUP_RETAIL_PRICES
+    assert {(row["model"], row["capacity"]): row["retail_price"] for row in new_products} == {
+        key: price for key, price in LINEUP_RETAIL_PRICES.items() if key[0].startswith("iPhone 18")
+    }
     for row in new_products:
         assert set(row) == {"id", "name", "model", "capacity", "retail_price", "carrier", "colors"}
         assert row["carrier"] == "SIMフリー"
@@ -142,3 +144,16 @@ def test_market_prices_take_best_price_and_count_buyers(db):
 
     us = prices_router.get_market_prices("us", db)
     assert us["products"][0]["colors"] == [{"code": None, "price": 1070, "store_count": 9}]
+
+
+def test_iphone_duo_has_its_own_colours_and_retail_prices(db):
+    sync_announced_lineup(db, LINEUP_RETAIL_PRICES)
+    duo = db.query(Product).filter_by(model="iPhone Duo").all()
+    assert {(row.capacity, row.retail_price) for row in duo} == {("256", 364800), ("512", 399800), ("1TB", 469800), ("2TB", 574800)}
+    variants = db.query(ProductVariant).join(Product).filter(Product.model == "iPhone Duo").all()
+    assert len(variants) == 8
+    assert {row.color_code for row in variants} == {"star-white", "night-sky"}
+    assert {(row.color_name_ja, row.color_name_zh) for row in variants} == {("スターホワイト", "星光白色"), ("ナイトスカイ", "夜空色")}
+    assert infer_color_code("iPhone Duo", "iPhone Duo 256GB Star White 未開封品") == "star-white"
+    assert infer_color_code("iPhone Duo", "iPhone Duo 512GB ナイトスカイ") == "night-sky"
+    assert infer_color_code("iPhone 18 Pro", "iPhone 18 Pro 256GB Star White") is None

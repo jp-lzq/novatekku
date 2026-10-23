@@ -13,6 +13,7 @@ from sqlalchemy import text
 from app.db import models  # noqa: F401  (registers every table)
 from app.db.roles import COLLECTOR_PRIVILEGES, WEB_PRIVILEGES, apply_grants
 from app.db.session import Base, SessionLocal, engine
+from app.pricing.iphone_lineup import LINEUP_RETAIL_PRICES, sync_announced_lineup
 from app.pricing.product_catalog import rebuild_standard_price_index
 
 
@@ -29,6 +30,11 @@ def main(argv: list[str] | None = None) -> None:
 
     Base.metadata.create_all(bind=engine)
     result = {"tables": sorted(Base.metadata.tables)}
+    # announced models (with verified Apple retail prices) exist before any store quotes them
+    with SessionLocal() as db:
+        created = sync_announced_lineup(db, LINEUP_RETAIL_PRICES)
+        db.commit()
+        result["lineup_products_created"] = [f"{row.model} {row.capacity}" for row in created]
     if not args.skip_index:
         with SessionLocal() as db:
             result["price_index"] = rebuild_standard_price_index(db)
