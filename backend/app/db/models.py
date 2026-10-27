@@ -458,3 +458,25 @@ class DailyHighPrice(Base):
     __table_args__ = (
         UniqueConstraint('product_id', 'date', name='uix_daily_high'),
     )
+
+
+class SiteAd(Base):
+    """サイト内の広告枠。文言とリンク先はコードに置かず、非公開の設定からこの表へ取り込む。"""
+    __tablename__ = "site_ads"
+
+    id = Column(Integer, primary_key=True)
+    slot = Column(String(40), nullable=False, index=True)  # e.g. ai_home
+    key = Column(String(60), nullable=False)
+    icon = Column(String(20), nullable=False, default="link", server_default="link")
+    brand = Column(String(100), nullable=False)
+    text_ja = Column(String(200), nullable=False)
+    text_zh = Column(String(200), nullable=False)
+    text_en = Column(String(200), nullable=False)
+    href = Column(String(1000), nullable=False)
+    enabled = Column(Boolean, nullable=False, default=True, server_default="true")
+    sort_order = Column(Integer, nullable=False, default=0, server_default="0")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("slot", "key", name="uix_site_ads_slot_key"),
+    )

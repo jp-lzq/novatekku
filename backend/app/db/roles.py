@@ -4,7 +4,8 @@
              member data and AI conversation logs (plus admin product creation).
 - collector: the price collectors.  Reads and writes prices, catalog and
              collection tables; cannot see member data or AI logs.
-- owner:     the account that owns the tables and runs migrations.
+- owner:     the account that owns the tables, runs migrations and imports
+             site content such as ads.
 
 The login roles and their passwords are created by the operator; this module
 only (re)applies table privileges and is run by ``python -m app.db.migrate``.
@@ -38,10 +39,11 @@ PRICE_TABLES = (
     "market_prices",
 )
 SOURCE_TABLES = ("collection_sources",)
+CONTENT_TABLES = ("site_ads",)  # written only by the owner
 
 # table -> privileges
 WEB_PRIVILEGES = {
-    **{table: "SELECT" for table in PRICE_TABLES + SOURCE_TABLES},
+    **{table: "SELECT" for table in PRICE_TABLES + SOURCE_TABLES + CONTENT_TABLES},
     **{table: "SELECT, INSERT, UPDATE, DELETE" for table in MEMBER_TABLES},
     "products": "SELECT, INSERT",  # admin can register a product
 }

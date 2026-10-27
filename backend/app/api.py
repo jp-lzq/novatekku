@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 
 from app.ai_gateway import router as ai
-from app.web.routers import admin, members, prices, products, search, stats, stores
+from app.web.routers import admin, ads, members, prices, products, search, stats, stores
 
 router = APIRouter(prefix="/api/v1")
 
@@ -14,3 +14,4 @@ router.include_router(prices.router)
 router.include_router(stats.router)
 router.include_router(search.router)
 router.include_router(ai.router)
+router.include_router(ads.router)

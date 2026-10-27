@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ArrowUp, Sparkles } from 'lucide-react'
 import ProductNav from '../components/ProductNav'
+import AdStrip from '../components/AdStrip'
 import { apiGet, apiPost } from '../lib/api'
 import { getCsrfHeaders } from '../lib/member'
 import { useI18n, type Language } from '../i18n'
@@ -132,6 +133,7 @@ export default function AI() {
           style={{ background: 'radial-gradient(circle at 50% 0%, rgba(221, 214, 254, 0.48), transparent 68%)' }}
         />
 
+        {messages.length === 0 && <AdStrip slot="ai_home" />}
         {messages.length === 0 ? (
           <section className="relative mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center px-4 pb-8 pt-14 sm:px-6">
             <div className="text-center">
