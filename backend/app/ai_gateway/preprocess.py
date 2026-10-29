@@ -10,6 +10,7 @@ import re
 from sqlalchemy.orm import Session
 
 from app.ai_gateway.core import AIRequest
+from app.ai_gateway.understanding import understand
 from app.db.store_metadata import get_store_metadata
 from app.pricing.current_prices import latest_prices_query
 from app.pricing.iphone_lineup import lineup_context
@@ -423,4 +424,5 @@ def prepare_request(
         catalog_question=is_catalog_question(message),
         bulk_quote=quote_bulk_request(message, full_price_data),
         lineup=lineup_context(),
+        understanding=understand(message).to_dict(),
     )

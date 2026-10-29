@@ -38,6 +38,7 @@ class AIRequest:
     catalog_question: bool = False  # the question asks which models exist
     bulk_quote: dict | None = None  # {"rows": [...], "total": int} for "model × quantity" questions
     lineup: str = ""  # announced Apple lineup and retail prices (JSON text)
+    understanding: dict = field(default_factory=dict)  # intent and devices, see app.ai_gateway.understanding
 
 
 @lru_cache(maxsize=1)
