@@ -75,6 +75,7 @@ interface AdvancedKLineResponse {
     latest_close: number | null
     latest_average: number | null
     latest_filtered_store_count: number
+    latest_store_count?: number
     change: number
     change_percent: number
     high: number | null
@@ -517,7 +518,7 @@ export default function ProfessionalKLineChart({ productId, language }: Professi
         <Metric label={labels.change} value={formatChange(data.summary.change, data.summary.change_percent)} valueClass={activeChangeClass} />
         <Metric label={labels.high} value={formatPrice(data.summary.high)} />
         <Metric label={labels.low} value={formatPrice(data.summary.low)} />
-        <Metric label={labels.stores} value={`${data.summary.store_count}`} />
+        <Metric label={labels.stores} value={`${data.summary.latest_store_count ?? data.summary.store_count}`} />
         <Metric label={labels.excluded} value={`${data.summary.latest_filtered_store_count}`} />
       </div>
 

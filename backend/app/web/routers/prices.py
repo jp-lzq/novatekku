@@ -20,6 +20,7 @@ from app.db.models import (
     Store,
     StoreProductPrice,
 )
+from app.infrastructure.ttl_cache import PUBLIC_PRICE_CACHE
 from app.pricing.current_prices import latest_prices_query
 from app.web.routers.common import public_price_to_dict
 from app.web.routers.members import AuthContext, client_ip, require_admin
@@ -199,20 +200,21 @@ def get_prices(
     store_id: Optional[int] = None,
     limit: int = Query(1000, ge=1, le=1000),
 ):
-    query = latest_prices_query(db)
+    def compute():
+        query = latest_prices_query(db)
+        if product_id:
+            query = query.filter(Price.product_id == product_id)
+        if store_id:
+            query = query.filter(Price.store_id == store_id)
+        prices = query.order_by(desc(Price.price)).all()
+        accepted = _accepted_price_keys(db, sorted({price.product_id for price in prices}))
+        return [
+            public_price_to_dict(price)
+            for price in prices
+            if (price.product_id, price.store_id, price.price) in accepted
+        ]
 
-    if product_id:
-        query = query.filter(Price.product_id == product_id)
-    if store_id:
-        query = query.filter(Price.store_id == store_id)
-
-    prices = query.order_by(desc(Price.price)).all()
-    accepted = _accepted_price_keys(db, sorted({price.product_id for price in prices}))
-    public_rows = [
-        public_price_to_dict(price)
-        for price in prices
-        if (price.product_id, price.store_id, price.price) in accepted
-    ]
+    public_rows = PUBLIC_PRICE_CACHE.get_or_set(("prices", product_id, store_id), compute)
     return public_rows[:limit]
 
 
@@ -358,6 +360,10 @@ def _assessment_data(db: Session) -> dict:
 
 @router.get("/prices/colors")
 def get_color_prices(db: Session = Depends(get_db)):
+    return PUBLIC_PRICE_CACHE.get_or_set(("colors",), lambda: _color_prices(db))
+
+
+def _color_prices(db: Session) -> dict:
     """Best current price per model, capacity and colour (no store names).
 
     Stores that quote each colour separately fill the colour columns; stores
@@ -413,6 +419,10 @@ def get_market_prices(
     market: str = Query(..., pattern="^(hk|us)$"),
     db: Session = Depends(get_db),
 ):
+    return PUBLIC_PRICE_CACHE.get_or_set(("markets", market), lambda: _market_prices(db, market))
+
+
+def _market_prices(db: Session, market: str) -> dict:
     """Overseas new-device buyback prices: best price per model/capacity/colour.
 
     Each source contributes its latest snapshot (if younger than 48 hours).
@@ -556,6 +566,8 @@ def quote_assessment_prices(
 
 @router.get("/prices/latest/{product_id}")
 def get_latest_prices(product_id: int, db: Session = Depends(get_db)):
+    if not db.query(Product.id).filter(Product.id == product_id).first():
+        raise HTTPException(status_code=404, detail="Product not found")
     prices = latest_prices_query(db).filter(Price.product_id == product_id).order_by(desc(Price.price)).all()
     accepted = _accepted_price_keys(db, [product_id])
     return [
@@ -861,7 +873,8 @@ def get_advanced_kline_data(
         "change_percent": change_percent,
         "high": max((candle["high"] for candle in candles), default=None),
         "low": min((candle["low"] for candle in candles), default=None),
-        "store_count": len(store_series),
+        "store_count": len(store_series),  # stores with a line on the chart (2+ points in the period)
+        "latest_store_count": candles[-1]["store_count"] if candles else 0,  # stores accepted in the newest candle
         "sample_count": sum(candle["sample_count"] for candle in candles),
         "raw_sample_count": sum(candle["raw_sample_count"] for candle in candles),
         "data_points": len(candles),
