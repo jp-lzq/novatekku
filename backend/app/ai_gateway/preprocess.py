@@ -10,9 +10,11 @@ import re
 from sqlalchemy.orm import Session
 
 from app.ai_gateway.core import AIRequest
+from app.ai_gateway.evidence import collect_price_evidence
 from app.ai_gateway.understanding import understand
 from app.db.store_metadata import get_store_metadata
 from app.pricing.current_prices import latest_prices_query
+from app.pricing.fx_rates import get_cached_fx_rates
 from app.pricing.iphone_lineup import lineup_context
 from app.pricing.market_average import build_market_average_batch
 
@@ -410,6 +412,7 @@ def prepare_request(
     """Turn one user question into the data package sent to the AI core."""
     full_price_data = build_price_context(db)
     matched_price_data = filter_price_context_for_message(message, full_price_data, conversation_history)
+    understanding = understand(message).to_dict()
     return AIRequest(
         message=message,
         language=resolve_response_language(preferred_language, message, conversation_history),
@@ -424,5 +427,20 @@ def prepare_request(
         catalog_question=is_catalog_question(message),
         bulk_quote=quote_bulk_request(message, full_price_data),
         lineup=lineup_context(),
-        understanding=understand(message).to_dict(),
+        understanding=understanding,
+        price_evidence=collect_price_evidence(db, understanding, full_price_data, _fx_rates(), _fx_updated()),
     )
+
+
+def _fx_rates() -> dict:
+    try:
+        return get_cached_fx_rates().get("rates") or {}
+    except Exception:
+        return {}
+
+
+def _fx_updated() -> str | None:
+    try:
+        return get_cached_fx_rates().get("last_updated")
+    except Exception:
+        return None

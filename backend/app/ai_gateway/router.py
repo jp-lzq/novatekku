@@ -6,7 +6,9 @@ from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query, Re
 from sqlalchemy.orm import Session
 
 from app.ai_gateway import core as ai_core
-from app.ai_gateway.preprocess import prepare_request
+from app.ai_gateway.evidence import collect_price_evidence
+from app.ai_gateway.preprocess import _fx_rates, _fx_updated, build_price_context, prepare_request
+from app.ai_gateway.understanding import understand
 from app.ai_gateway.session import AI_HISTORY_MAX_MESSAGES, AI_SESSION_MAX, get_session_state
 from app.db.models import AIConversationLog
 from app.db.session import get_db
@@ -18,6 +20,7 @@ from app.web.routers.members import (
     enforce_trusted_origin,
     get_member_ai_usage,
     get_optional_auth_context,
+    require_admin,
     client_ip,
     require_csrf,
 )
@@ -48,6 +51,27 @@ def ai_usage(
         "limit": AI_SESSION_MAX,
         "used": used,
         "remaining": AI_SESSION_MAX - used,
+    }
+
+
+@router.get("/ai/preview")
+def ai_preview(
+    message: str = Query(min_length=1, max_length=2000),
+    language: str = Query("ja", pattern="^(ja|zh|en)$"),
+    _: AuthContext = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Admin only: how a question is understood and which price facts it would get.
+
+    Calls no model and uses no question allowance, so it is safe for checking
+    the preprocessing on the live data.
+    """
+    understanding = understand(message).to_dict()
+    evidence = collect_price_evidence(db, understanding, build_price_context(db), _fx_rates(), _fx_updated())
+    return {
+        "understanding": understanding,
+        "price_evidence": evidence,
+        "lines": (evidence.get("lines") or {}).get(language, []),
     }
 
 

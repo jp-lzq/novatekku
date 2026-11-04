@@ -39,6 +39,7 @@ class AIRequest:
     bulk_quote: dict | None = None  # {"rows": [...], "total": int} for "model × quantity" questions
     lineup: str = ""  # announced Apple lineup and retail prices (JSON text)
     understanding: dict = field(default_factory=dict)  # intent and devices, see app.ai_gateway.understanding
+    price_evidence: dict = field(default_factory=dict)  # quotes, trend, overseas, totals, see app.ai_gateway.evidence
 
 
 @lru_cache(maxsize=1)

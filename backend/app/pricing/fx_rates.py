@@ -104,6 +104,13 @@ def get_fx_rates() -> Dict[str, Any]:
     }
 
 
+def get_cached_fx_rates() -> Dict[str, Any]:
+    """Rates already in memory or on disk, never fetched over the network (for request paths)."""
+    if FX_CACHE["last_updated"] is None:
+        _load_from_disk()
+    return {"rates": FX_CACHE["rates"], "last_updated": FX_CACHE.get("last_updated")}
+
+
 try:
     from celery import shared_task
 
