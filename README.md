@@ -54,6 +54,10 @@ NOVA AIは、iPhone買取市場の価格比較とスマートフォン相談を�
 
 技術更新の記録は、ウェブ版の [NOVA 技術リリース履歴](https://novatekku.com/development) に統一しています。
 
+## セキュリティ
+
+脆弱性を見つけた場合は、Issue に書かずに `SECURITY.md` の手順で非公開に報告してください。依存パッケージの監査や権限の分離など、続けている対策もそこにまとめています。
+
 ## ライセンス
 
 Copyright © 2024–2026 NOVA AI. All rights reserved.
