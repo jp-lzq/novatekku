@@ -9,7 +9,7 @@ celery==5.6.3
 kombu==5.7.0  # pinned: celery leaves it open and 5.7 needs redis-py 6.4+
 redis==7.4.1
 httpx==0.28.1
-beautifulsoup4==4.12.2
+beautifulsoup4==4.15.0
 lxml==6.1.1
 python-dotenv==1.2.2
 pytest==9.1.1
