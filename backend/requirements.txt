@@ -5,8 +5,9 @@ sqlalchemy==2.1.2
 psycopg2-binary==2.9.9
 pydantic==2.13.4
 pydantic-settings==2.14.2
-celery==5.3.4
-redis==5.0.1
+celery==5.6.3
+kombu==5.7.0  # pinned: celery leaves it open and 5.7 needs redis-py 6.4+
+redis==7.4.1
 httpx==0.25.2
 beautifulsoup4==4.12.2
 lxml==6.1.1
