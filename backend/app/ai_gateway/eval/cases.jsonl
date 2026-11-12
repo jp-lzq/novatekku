@@ -1,0 +1,161 @@
+// Graded questions for the understanding benchmark (see runner.py). One JSON object per line.
+{"id": "ja-price-01", "lang": "ja", "q": "iPhone 17 Pro 256GB はいくら？", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "ja-price-02", "lang": "ja", "q": "17プロマ 256 いくら", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "capacities": ["256"]}}
+{"id": "ja-price-03", "lang": "ja", "q": "17プロマックス 1TB の買取価格", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "capacities": ["1TB"]}}
+{"id": "ja-price-04", "lang": "ja", "q": "iPhone17 256G 買取", "expect": {"intent": "price_quote", "models": ["iPhone 17"], "capacities": ["256"]}}
+{"id": "ja-price-05", "lang": "ja", "q": "17エア 512 査定いくら", "expect": {"intent": "price_quote", "models": ["iPhone 17 Air"], "capacities": ["512"]}}
+{"id": "ja-price-06", "lang": "ja", "q": "iPhone Air 256 いくら", "expect": {"intent": "price_quote", "models": ["iPhone 17 Air"], "capacities": ["256"]}}
+{"id": "ja-price-07", "lang": "ja", "q": "16e 128 の相場", "expect": {"intent": "price_quote", "models": ["iPhone 16e"], "capacities": ["128"]}}
+{"id": "ja-price-08", "lang": "ja", "q": "iPhone 18 Pro Max 2TB の値段", "expect": {"intent": "price_quote", "models": ["iPhone 18 Pro Max"], "capacities": ["2TB"]}}
+{"id": "ja-price-09", "lang": "ja", "q": "iPhone Duo 512 いくら？", "expect": {"intent": "price_quote", "models": ["iPhone Duo"], "capacities": ["512"]}}
+{"id": "ja-price-10", "lang": "ja", "q": "折りたたみiPhone 1TB の買取", "expect": {"intent": "price_quote", "models": ["iPhone Duo"], "capacities": ["1TB"]}}
+{"id": "ja-price-11", "lang": "ja", "q": "デュオ 2T 買取価格", "expect": {"intent": "price_quote", "models": ["iPhone Duo"], "capacities": ["2TB"]}}
+{"id": "ja-price-12", "lang": "ja", "q": "16プラス 256 いくらで売れる？", "expect": {"intent": "price_quote", "models": ["iPhone 16 Plus"], "capacities": ["256"]}}
+{"id": "ja-price-13", "lang": "ja", "q": "15 pro max 1テラ 査定", "expect": {"intent": "price_quote", "models": ["iPhone 15 Pro Max"], "capacities": ["1TB"]}}
+{"id": "ja-price-14", "lang": "ja", "q": "ｉＰｈｏｎｅ１７　Ｐｒｏ　２５６ いくら", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "ja-price-15", "lang": "ja", "q": "17 pro 256 SIMフリー 未開封 いくら", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "ja-price-16", "lang": "ja", "q": "17e 256 買取", "expect": {"intent": "price_quote", "models": ["iPhone 17e"], "capacities": ["256"]}}
+{"id": "ja-price-17", "lang": "ja", "q": "16 pro 512 中古 の値段", "expect": {"intent": "price_quote", "models": ["iPhone 16 Pro"], "capacities": ["512"]}}
+{"id": "ja-price-18", "lang": "ja", "q": "17 256", "expect": {"intent": "price_quote", "models": ["iPhone 17"], "capacities": ["256"]}}
+{"id": "ja-price-19", "lang": "ja", "q": "17 pro max 2TB", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "capacities": ["2TB"]}}
+{"id": "ja-price-20", "lang": "ja", "q": "iPhone 17 Pro/256GB/シルバー", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "ja-color-01", "lang": "ja", "q": "17 pro 256 ディープブルー いくら", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "colors": ["deep-blue"]}}
+{"id": "ja-color-02", "lang": "ja", "q": "17 pro max 512 コズミックオレンジ", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "colors": ["cosmic-orange"]}}
+{"id": "ja-color-03", "lang": "ja", "q": "17 256 ラベンダー 買取", "expect": {"intent": "price_quote", "models": ["iPhone 17"], "colors": ["lavender"]}}
+{"id": "ja-color-04", "lang": "ja", "q": "17 pro 256 白 いくら", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "colors": ["silver"]}}
+{"id": "ja-color-05", "lang": "ja", "q": "iPhone Duo 256 ナイトスカイ", "expect": {"intent": "price_quote", "models": ["iPhone Duo"], "colors": ["night-sky"]}}
+{"id": "ja-color-06", "lang": "ja", "q": "16 pro 256 デザート", "expect": {"intent": "price_quote", "models": ["iPhone 16 Pro"], "colors": ["desert-titanium"]}}
+{"id": "ja-color-07", "lang": "ja", "q": "15 128 ピンク の買取", "expect": {"intent": "price_quote", "models": ["iPhone 15"], "colors": ["pink"]}}
+{"id": "ja-color-08", "lang": "ja", "q": "17 air 256 スカイブルー", "expect": {"intent": "price_quote", "models": ["iPhone 17 Air"], "colors": ["sky-blue"]}}
+{"id": "ja-rank-01", "lang": "ja", "q": "17 Pro Max 256 はどこが一番高い？", "expect": {"intent": "store_ranking", "models": ["iPhone 17 Pro Max"], "capacities": ["256"]}}
+{"id": "ja-rank-02", "lang": "ja", "q": "16e 128 を一番高く売れる店は？", "expect": {"intent": "store_ranking", "models": ["iPhone 16e"], "capacities": ["128"]}}
+{"id": "ja-rank-03", "lang": "ja", "q": "iPhone 18 Pro 256 の最高値の店", "expect": {"intent": "store_ranking", "models": ["iPhone 18 Pro"], "capacities": ["256"]}}
+{"id": "ja-rank-04", "lang": "ja", "q": "どの店で17 pro 512を売るのがおすすめの店？", "expect": {"intent": "store_ranking", "models": ["iPhone 17 Pro"], "capacities": ["512"]}}
+{"id": "ja-compare-01", "lang": "ja", "q": "17 pro と 16 pro max どっちが高く売れる？", "expect": {"intent": "model_compare", "models": ["iPhone 17 Pro", "iPhone 16 Pro Max"]}}
+{"id": "ja-compare-02", "lang": "ja", "q": "17 pro 256と17 pro 512の差は？", "expect": {"intent": "model_compare", "models": ["iPhone 17 Pro", "iPhone 17 Pro"]}}
+{"id": "ja-compare-03", "lang": "ja", "q": "iPhone Duo と 18 Pro Max を比較して", "expect": {"intent": "model_compare", "models": ["iPhone Duo", "iPhone 18 Pro Max"]}}
+{"id": "ja-compare-04", "lang": "ja", "q": "16e と 17e の違いは買取価格でどれくらい？", "expect": {"intent": "model_compare", "models": ["iPhone 16e", "iPhone 17e"]}}
+{"id": "ja-timing-01", "lang": "ja", "q": "今は17 Proを売るタイミングですか？", "expect": {"intent": "sell_timing", "models": ["iPhone 17 Pro"]}}
+{"id": "ja-timing-02", "lang": "ja", "q": "18が出たら17の買取価格は下がる？", "expect": {"intent": "sell_timing", "models": ["iPhone 18", "iPhone 17"]}}
+{"id": "ja-timing-03", "lang": "ja", "q": "17 pro max は待つべき？それとも今売る？", "expect": {"intent": "sell_timing", "models": ["iPhone 17 Pro Max"]}}
+{"id": "ja-timing-04", "lang": "ja", "q": "16 pro の値下がりは今後も続く？", "expect": {"intent": "sell_timing", "models": ["iPhone 16 Pro"]}}
+{"id": "ja-overseas-01", "lang": "ja", "q": "香港で売ったらいくら？ 17 pro max 512", "expect": {"intent": "overseas_market", "models": ["iPhone 17 Pro Max"], "markets": ["hk"]}}
+{"id": "ja-overseas-02", "lang": "ja", "q": "アメリカだと16e 128はいくら？", "expect": {"intent": "overseas_market", "models": ["iPhone 16e"], "markets": ["us"]}}
+{"id": "ja-overseas-03", "lang": "ja", "q": "iPhone Duo 1TB 香港と日本どっちが高い？", "expect": {"intent": "overseas_market", "models": ["iPhone Duo"], "markets": ["hk"]}}
+{"id": "ja-bulk-01", "lang": "ja", "q": "16e×3 と 17×2 の合計", "expect": {"intent": "bulk_quote", "models": ["iPhone 16e", "iPhone 17"], "capacities": [null, null], "quantities": [3, 2]}}
+{"id": "ja-bulk-02", "lang": "ja", "q": "17 pro 256 5台まとめて売りたい", "expect": {"intent": "bulk_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"], "quantities": [5]}}
+{"id": "ja-bulk-03", "lang": "ja", "q": "17 pro max 1tb 未開封 x2、16 pro 128 中古 合計", "expect": {"intent": "bulk_quote", "models": ["iPhone 17 Pro Max", "iPhone 16 Pro"], "capacities": ["1TB", "128"], "quantities": [2, 1]}}
+{"id": "ja-bulk-04", "lang": "ja", "q": "4x 17 pro 256 全部でいくら", "expect": {"intent": "bulk_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"], "quantities": [4]}}
+{"id": "ja-catalog-01", "lang": "ja", "q": "iPhoneの種類は？", "expect": {"intent": "catalog", "models": []}}
+{"id": "ja-catalog-02", "lang": "ja", "q": "どんな機種が何があるの？", "expect": {"intent": "catalog"}}
+{"id": "ja-retail-01", "lang": "ja", "q": "iPhone 17 Air の定価は？", "expect": {"intent": "retail_price", "models": ["iPhone 17 Air"]}}
+{"id": "ja-retail-02", "lang": "ja", "q": "18 pro max の発売価格はいくら？", "expect": {"intent": "retail_price", "models": ["iPhone 18 Pro Max"]}}
+{"id": "ja-store-01", "lang": "ja", "q": "一番高い店の住所は？", "expect": {"intent": "store_info"}}
+{"id": "ja-store-02", "lang": "ja", "q": "お店はどこにありますか", "expect": {"intent": "store_info"}}
+{"id": "ja-store-03", "lang": "ja", "q": "土曜日は何時から開いてますか", "expect": {"intent": "store_info"}, "known_gap": "営業時間を表す語（営業時間・何時まで）がないと店舗情報と分からない"}
+{"id": "ja-help-01", "lang": "ja", "q": "AndroidからiPhoneへデータを移す方法は？", "expect": {"intent": "device_help", "models": []}}
+{"id": "ja-help-02", "lang": "ja", "q": "バッテリーの最大容量はどこで見られる？", "expect": {"intent": "device_help"}}
+{"id": "ja-greet-01", "lang": "ja", "q": "こんにちは", "expect": {"intent": "greeting", "models": []}}
+{"id": "ja-greet-02", "lang": "ja", "q": "ありがとう", "expect": {"intent": "greeting"}}
+{"id": "ja-off-01", "lang": "ja", "q": "ビットコインの今の価格は？", "expect": {"intent": "off_topic", "models": []}}
+{"id": "ja-off-02", "lang": "ja", "q": "今日の天気は？", "expect": {"intent": "off_topic"}}
+{"id": "ja-noise-01", "lang": "ja", "q": "12台あります", "expect": {"models": []}}
+{"id": "ja-noise-02", "lang": "ja", "q": "15:00に買取できますか", "expect": {"models": []}}
+{"id": "ja-noise-03", "lang": "ja", "q": "17pro 256 12.5万で売れる？", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "ja-noise-04", "lang": "ja", "q": "iPad Pro 13 買取", "expect": {"models": []}}
+{"id": "ja-noise-05", "lang": "ja", "q": "5G対応の17はある？", "expect": {"models": ["iPhone 17"]}, "known_gap": "iphone・型番・容量のない裸の「17」は数字の誤認を避けるため機種にしない"}
+{"id": "ja-noise-06", "lang": "ja", "q": "15・16どっちが高い？", "expect": {"intent": "model_compare", "models": ["iPhone 15", "iPhone 16"]}, "known_gap": "iphone も型番もない数字だけの機種名"}
+{"id": "ja-follow-01", "lang": "ja", "q": "512 は？", "history": ["iPhone 17 Pro 256 はいくら？"], "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["512"]}}
+{"id": "ja-follow-02", "lang": "ja", "q": "白は？", "history": ["iPhone 17 Pro 256 はいくら？", "512 は？"], "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["512"], "colors": ["silver"]}}
+{"id": "ja-follow-03", "lang": "ja", "q": "香港なら？", "history": ["iPhone 17 Pro 256 はいくら？"], "expect": {"intent": "overseas_market", "models": ["iPhone 17 Pro"], "capacities": ["256"], "markets": ["hk"]}}
+{"id": "ja-follow-04", "lang": "ja", "q": "2台だと？", "history": ["iPhone 17 Pro 256 はいくら？"], "expect": {"models": ["iPhone 17 Pro"], "quantities": [2]}}
+{"id": "ja-follow-05", "lang": "ja", "q": "512 だと？", "history": ["17 pro と 16 pro はどっちが高い？"], "expect": {"intent": "model_compare", "models": ["iPhone 17 Pro", "iPhone 16 Pro"], "capacities": ["512", "512"]}}
+{"id": "ja-follow-06", "lang": "ja", "q": "ビットコインの価格は？", "history": ["iPhone 17 Pro 256 はいくら？"], "expect": {"intent": "off_topic", "models": []}}
+{"id": "ja-follow-07", "lang": "ja", "q": "iPhone 16 128 は？", "history": ["iPhone 17 Pro 256 はいくら？"], "expect": {"intent": "price_quote", "models": ["iPhone 16"], "capacities": ["128"]}}
+{"id": "ja-follow-08", "lang": "ja", "q": "512 は？", "history": ["iPhone 17 Pro 256 はいくら？", "ありがとう"], "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["512"]}}
+{"id": "ja-follow-09", "lang": "ja", "q": "それの1TBは？", "history": ["iPhone 17 Pro 256 はいくら？"], "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["1TB"]}}
+{"id": "zh-price-01", "lang": "zh", "q": "17 pro max 512 多少钱", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "capacities": ["512"]}}
+{"id": "zh-price-02", "lang": "zh", "q": "十七pro 256 回收价", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "zh-price-03", "lang": "zh", "q": "十六pm 1t 多少钱", "expect": {"intent": "price_quote", "models": ["iPhone 16 Pro Max"], "capacities": ["1TB"]}}
+{"id": "zh-price-04", "lang": "zh", "q": "苹果手机十七 256 估价", "expect": {"intent": "price_quote", "models": ["iPhone 17"], "capacities": ["256"]}}
+{"id": "zh-price-05", "lang": "zh", "q": "iPhone Duo 2TB 能卖多少", "expect": {"intent": "price_quote", "models": ["iPhone Duo"], "capacities": ["2TB"]}}
+{"id": "zh-price-06", "lang": "zh", "q": "17air 256 报价", "expect": {"intent": "price_quote", "models": ["iPhone 17 Air"], "capacities": ["256"]}}
+{"id": "zh-price-07", "lang": "zh", "q": "16e 128 回收多少钱", "expect": {"intent": "price_quote", "models": ["iPhone 16e"], "capacities": ["128"]}}
+{"id": "zh-price-08", "lang": "zh", "q": "18 pro 1tb 价格", "expect": {"intent": "price_quote", "models": ["iPhone 18 Pro"], "capacities": ["1TB"]}}
+{"id": "zh-price-09", "lang": "zh", "q": "15 pro 256 二手 值多少", "expect": {"intent": "price_quote", "models": ["iPhone 15 Pro"], "capacities": ["256"]}}
+{"id": "zh-price-10", "lang": "zh", "q": "17 pro 256 港版 多少钱", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "zh-price-11", "lang": "zh", "q": "17promax 256 无锁 全新", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "capacities": ["256"]}}
+{"id": "zh-price-12", "lang": "zh", "q": "17 pro 256 深蓝 多少钱", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "zh-color-01", "lang": "zh", "q": "17 pro 256 深蓝 回收", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "colors": ["deep-blue"]}}
+{"id": "zh-color-02", "lang": "zh", "q": "iphone duo 256 夜空色", "expect": {"intent": "price_quote", "models": ["iPhone Duo"], "colors": ["night-sky"]}}
+{"id": "zh-color-03", "lang": "zh", "q": "17 256 薰衣草 多少钱", "expect": {"intent": "price_quote", "models": ["iPhone 17"], "colors": ["lavender"]}}
+{"id": "zh-rank-01", "lang": "zh", "q": "哪家店收17pro最高价", "expect": {"intent": "store_ranking", "models": ["iPhone 17 Pro"]}}
+{"id": "zh-rank-02", "lang": "zh", "q": "16e 128 哪个店卖得最贵", "expect": {"intent": "store_ranking", "models": ["iPhone 16e"], "capacities": ["128"]}}
+{"id": "zh-compare-01", "lang": "zh", "q": "十六pm 1t 和 15 pro 哪个值钱", "expect": {"intent": "model_compare", "models": ["iPhone 16 Pro Max", "iPhone 15 Pro"], "capacities": ["1TB", null]}}
+{"id": "zh-compare-02", "lang": "zh", "q": "17promax和16promax差多少钱", "expect": {"intent": "model_compare", "models": ["iPhone 17 Pro Max", "iPhone 16 Pro Max"]}}
+{"id": "zh-compare-03", "lang": "zh", "q": "16 pro 和 17 哪个更保值", "expect": {"intent": "model_compare", "models": ["iPhone 16 Pro", "iPhone 17"]}, "known_gap": "iphone も型番もない後ろの「17」"}
+{"id": "zh-timing-01", "lang": "zh", "q": "17 pro max 现在卖还是等等再卖", "expect": {"intent": "sell_timing", "models": ["iPhone 17 Pro Max"]}}
+{"id": "zh-timing-02", "lang": "zh", "q": "18发布后17会跌价吗", "expect": {"intent": "sell_timing"}}
+{"id": "zh-timing-03", "lang": "zh", "q": "现在17 pro max回收价格是涨还是跌", "expect": {"intent": "sell_timing", "models": ["iPhone 17 Pro Max"]}, "known_gap": "「涨还是跌」が売り時の言い回しに入っていない"}
+{"id": "zh-overseas-01", "lang": "zh", "q": "美国回收17pro多少钱", "expect": {"intent": "overseas_market", "models": ["iPhone 17 Pro"], "markets": ["us"]}}
+{"id": "zh-overseas-02", "lang": "zh", "q": "香港 16e 128 回收价", "expect": {"intent": "overseas_market", "models": ["iPhone 16e"], "capacities": ["128"], "markets": ["hk"]}}
+{"id": "zh-bulk-01", "lang": "zh", "q": "两台17pro 三台16e 一共多少", "expect": {"intent": "bulk_quote", "models": ["iPhone 17 Pro", "iPhone 16e"], "quantities": [2, 3]}}
+{"id": "zh-bulk-02", "lang": "zh", "q": "我有两台17 pro 256 合计多少钱", "expect": {"intent": "bulk_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"], "quantities": [2]}}
+{"id": "zh-bulk-03", "lang": "zh", "q": "17 pro 用了3个月 多少钱", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "quantities": [1]}}
+{"id": "zh-catalog-01", "lang": "zh", "q": "iphone有哪些型号", "expect": {"intent": "catalog"}}
+{"id": "zh-retail-01", "lang": "zh", "q": "17 pro 官网价多少", "expect": {"intent": "retail_price", "models": ["iPhone 17 Pro"]}}
+{"id": "zh-retail-02", "lang": "zh", "q": "苹果官网17 Air卖多少钱", "expect": {"intent": "retail_price", "models": ["iPhone 17 Air"]}, "known_gap": "「官网…卖多少钱」が定価でなく買取の質問と判定される"}
+{"id": "zh-store-01", "lang": "zh", "q": "这家店营业时间", "expect": {"intent": "store_info"}}
+{"id": "zh-store-02", "lang": "zh", "q": "店在哪里", "expect": {"intent": "store_info"}}
+{"id": "zh-help-01", "lang": "zh", "q": "iphone 电池健康怎么看", "expect": {"intent": "device_help"}}
+{"id": "zh-help-02", "lang": "zh", "q": "怎么备份iPhone", "expect": {"intent": "device_help"}}
+{"id": "zh-greet-01", "lang": "zh", "q": "你好", "expect": {"intent": "greeting"}}
+{"id": "zh-greet-02", "lang": "zh", "q": "谢谢", "expect": {"intent": "greeting"}}
+{"id": "zh-off-01", "lang": "zh", "q": "今天天气怎么样", "expect": {"intent": "off_topic"}}
+{"id": "zh-noise-01", "lang": "zh", "q": "小米14 pro 回收", "expect": {"models": []}}
+{"id": "zh-follow-01", "lang": "zh", "q": "那 256 呢？", "history": ["17 pro max 1tb 多少钱"], "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "capacities": ["256"]}}
+{"id": "zh-follow-02", "lang": "zh", "q": "银色的呢", "history": ["17 pro max 1tb 多少钱", "那 256 呢？"], "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "capacities": ["256"], "colors": ["silver"]}}
+{"id": "zh-follow-03", "lang": "zh", "q": "美国呢", "history": ["17 pro max 1tb 多少钱"], "expect": {"intent": "overseas_market", "models": ["iPhone 17 Pro Max"], "markets": ["us"]}}
+{"id": "zh-follow-04", "lang": "zh", "q": "两台的话呢", "history": ["17 pro max 1tb 多少钱"], "expect": {"models": ["iPhone 17 Pro Max"], "quantities": [2]}}
+{"id": "zh-follow-05", "lang": "zh", "q": "今天天气怎么样", "history": ["17 pro max 1tb 多少钱"], "expect": {"intent": "off_topic", "models": []}}
+{"id": "en-price-01", "lang": "en", "q": "how much is iphone 17 pro 256", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "en-price-02", "lang": "en", "q": "iphone 17 pro max 512gb buyback price", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "capacities": ["512"]}}
+{"id": "en-price-03", "lang": "en", "q": "what is my iPhone 16e 128 worth", "expect": {"intent": "price_quote", "models": ["iPhone 16e"], "capacities": ["128"]}}
+{"id": "en-price-04", "lang": "en", "q": "sell iphone duo 1tb", "expect": {"intent": "price_quote", "models": ["iPhone Duo"], "capacities": ["1TB"]}}
+{"id": "en-price-05", "lang": "en", "q": "price for iphone air 256", "expect": {"intent": "price_quote", "models": ["iPhone 17 Air"], "capacities": ["256"]}}
+{"id": "en-price-06", "lang": "en", "q": "I want to sell my iPhone 16.", "expect": {"intent": "price_quote", "models": ["iPhone 16"]}}
+{"id": "en-price-07", "lang": "en", "q": "I have an iPhone 17.", "expect": {"intent": "price_quote", "models": ["iPhone 17"]}}
+{"id": "en-price-08", "lang": "en", "q": "iphone 15/16 price", "expect": {"intent": "price_quote", "models": ["iPhone 15", "iPhone 16"]}}
+{"id": "en-price-09", "lang": "en", "q": "quote for 18 pro max 2tb sealed", "expect": {"intent": "price_quote", "models": ["iPhone 18 Pro Max"], "capacities": ["2TB"]}}
+{"id": "en-price-10", "lang": "en", "q": "17 pro 256 unlocked trade-in value", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "en-color-01", "lang": "en", "q": "iphone 17 pro max 512 cosmic orange", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro Max"], "colors": ["cosmic-orange"]}}
+{"id": "en-color-02", "lang": "en", "q": "iphone duo 256 star white", "expect": {"intent": "price_quote", "models": ["iPhone Duo"], "colors": ["star-white"]}}
+{"id": "en-rank-01", "lang": "en", "q": "which store pays the most for iphone 16 pro", "expect": {"intent": "store_ranking", "models": ["iPhone 16 Pro"]}}
+{"id": "en-rank-02", "lang": "en", "q": "where can i sell my 17 pro max for the highest price", "expect": {"intent": "store_ranking", "models": ["iPhone 17 Pro Max"]}}
+{"id": "en-compare-01", "lang": "en", "q": "compare iphone 17 air and iphone 17", "expect": {"intent": "model_compare", "models": ["iPhone 17 Air", "iPhone 17"]}}
+{"id": "en-compare-02", "lang": "en", "q": "iphone 16 pro vs iphone 17 pro resale", "expect": {"intent": "model_compare", "models": ["iPhone 16 Pro", "iPhone 17 Pro"]}}
+{"id": "en-timing-01", "lang": "en", "q": "should i sell my iphone 16 now or wait", "expect": {"intent": "sell_timing", "models": ["iPhone 16"]}}
+{"id": "en-timing-02", "lang": "en", "q": "should i sell my 16 now or wait for the price drop", "expect": {"intent": "sell_timing", "models": ["iPhone 16"]}}
+{"id": "en-timing-03", "lang": "en", "q": "Is it better to sell my 15 Pro Max now or after Christmas?", "expect": {"intent": "sell_timing", "models": ["iPhone 15 Pro Max"]}, "known_gap": "「after Christmas」が売り時の言い回しに入っていない"}
+{"id": "en-overseas-01", "lang": "en", "q": "iphone 17 price in hong kong", "expect": {"intent": "overseas_market", "models": ["iPhone 17"], "markets": ["hk"]}}
+{"id": "en-overseas-02", "lang": "en", "q": "how much in the US for iphone 16e 128", "expect": {"intent": "overseas_market", "models": ["iPhone 16e"], "capacities": ["128"], "markets": ["us"]}}
+{"id": "en-bulk-01", "lang": "en", "q": "4x iPhone 16e 128 and 2x iPhone 17 256 total", "expect": {"intent": "bulk_quote", "models": ["iPhone 16e", "iPhone 17"], "capacities": ["128", "256"], "quantities": [4, 2]}}
+{"id": "en-bulk-02", "lang": "en", "q": "17 pro 256 x3 in total", "expect": {"intent": "bulk_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"], "quantities": [3]}}
+{"id": "en-catalog-01", "lang": "en", "q": "which models do you buy", "expect": {"intent": "catalog"}}
+{"id": "en-retail-01", "lang": "en", "q": "what is the apple price of iphone 17 air", "expect": {"intent": "retail_price", "models": ["iPhone 17 Air"]}}
+{"id": "en-store-01", "lang": "en", "q": "Where is your shop?", "expect": {"intent": "store_info"}}
+{"id": "en-store-02", "lang": "en", "q": "What time do you close on Sunday?", "expect": {"intent": "store_info"}, "known_gap": "営業時間を表す語（opening hours / open until）がない"}
+{"id": "en-help-01", "lang": "en", "q": "how do i back up my iphone", "expect": {"intent": "device_help"}}
+{"id": "en-help-02", "lang": "en", "q": "how to transfer data from android", "expect": {"intent": "device_help"}}
+{"id": "en-greet-01", "lang": "en", "q": "hello", "expect": {"intent": "greeting"}}
+{"id": "en-greet-02", "lang": "en", "q": "thanks", "expect": {"intent": "greeting"}}
+{"id": "en-off-01", "lang": "en", "q": "what's the price of gold", "expect": {"intent": "off_topic"}}
+{"id": "en-off-02", "lang": "en", "q": "similar price", "expect": {"intent": "off_topic"}}
+{"id": "en-noise-01", "lang": "en", "q": "open until 11 pm", "expect": {"models": []}}
+{"id": "en-noise-02", "lang": "en", "q": "A18 Pro chip", "expect": {"models": []}}
+{"id": "en-noise-03", "lang": "en", "q": "Galaxy Z Fold price", "expect": {"models": []}}
+{"id": "en-noise-04", "lang": "en", "q": "I'm 18, can I sell my iphone 15 without parents?", "expect": {"models": ["iPhone 15"]}, "known_gap": "年齢の「18」を iPhone 18 と読む"}
+{"id": "en-follow-01", "lang": "en", "q": "what about 256?", "history": ["how much is iphone 16e 128"], "expect": {"intent": "price_quote", "models": ["iPhone 16e"], "capacities": ["256"]}}
+{"id": "en-follow-02", "lang": "en", "q": "and in the US?", "history": ["how much is iphone 16e 128"], "expect": {"intent": "overseas_market", "models": ["iPhone 16e"], "markets": ["us"]}}
+{"id": "en-follow-03", "lang": "en", "q": "how about 3 of them", "history": ["how much is iphone 16e 128"], "expect": {"models": ["iPhone 16e"], "quantities": [3]}}
+{"id": "en-follow-04", "lang": "en", "q": "what's the price of gold", "history": ["how much is iphone 16e 128"], "expect": {"intent": "off_topic", "models": []}}
