@@ -176,4 +176,46 @@ export const DEVELOPMENT_LOGS: DevelopmentLogEntry[] = [
       ja: 'システムごとにデータベース権限を分離し、毎日の自動バックアップと迅速な復旧を整えました。',
     },
   },
+  {
+    period: '2026.10',
+    phase: { en: 'Global', zh: '全球版', ja: 'グローバル' },
+    title: {
+      en: 'Launched the global edition, colour prices and iPhone Duo',
+      zh: '上线全球版、分颜色价格和 iPhone Duo',
+      ja: 'グローバル版・カラー別価格・iPhone Duo を公開',
+    },
+    content: {
+      en: 'Compared buyback prices in Japan, Hong Kong and the United States in one currency, showed price differences by colour, and added the foldable iPhone Duo from launch day.',
+      zh: '把日本、香港、美国的回收价换算成同一币种对比，按颜色显示价差，并在发售当天加入折叠屏 iPhone Duo。',
+      ja: '日本・香港・アメリカの買取価格を同じ通貨で比べられるようにし、カラーごとの価格差を表示。折りたたみの iPhone Duo も発売日から掲載しました。',
+    },
+  },
+  {
+    period: '2026.11',
+    phase: { en: 'AI', zh: 'AI', ja: 'AI' },
+    title: {
+      en: 'Rebuilt how NOVA AI understands and answers price questions',
+      zh: '重新设计 NOVA AI 理解和回答价格问题的方式',
+      ja: 'NOVA AI の質問理解と価格回答を再設計',
+    },
+    content: {
+      en: 'NOVA AI now reads models, capacities, colours and quantities from casual wording, follows up questions such as "and 512GB?", answers from verified price facts with trends and overseas prices, checks every amount in its answers, and is scored on a 160-question benchmark (94%).',
+      zh: 'NOVA AI 现在能从口语里读出机型、容量、颜色和台数，能接上“那 512 呢？”这样的追问，用核实过的价格、涨跌和海外价回答，并逐个核对回答里的金额；在 160 道题的自动考试中正确率 94%。',
+      ja: '話し言葉から機種・容量・色・台数を読み取り、「512GB は？」のような続きの質問にも対応。確認済みの価格・値動き・海外価格をもとに答え、回答中の金額を照合します。160 問の採点で正答率 94% です。',
+    },
+  },
+  {
+    period: '2026.11',
+    phase: { en: 'Security', zh: '安全', ja: 'セキュリティ' },
+    title: {
+      en: 'Hardened the servers and the collection monitoring',
+      zh: '加强服务器安全与采集监控',
+      ja: 'サーバーの防御と収集の監視を強化',
+    },
+    content: {
+      en: 'Applied all pending security updates with daily automatic patching, switched server access to keys only, cleared every known dependency vulnerability, and added health checks that flag stores whose price collection is failing.',
+      zh: '安装全部积压的安全补丁并改为每天自动更新，服务器登录改为只用密钥，清零已知的依赖漏洞，并加入采集健康检查，自动标出采集出问题的店铺。',
+      ja: '保留中のセキュリティ更新をすべて適用して毎日自動で更新するようにし、サーバーへのログインを鍵のみに変更。既知の依存パッケージの脆弱性をなくし、価格収集に問題のある店舗を自動で示す監視を加えました。',
+    },
+  },
 ]
