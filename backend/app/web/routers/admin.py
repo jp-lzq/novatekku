@@ -1,5 +1,5 @@
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Query, Request, Response
 from sqlalchemy import func
@@ -32,6 +32,7 @@ from app.web.routers.members import (
     require_csrf,
 )
 from app.web.schemas import MemberAuthControlUpdate
+from app.web.services.collection_health import RunSnapshot, assess, summarise
 from app.web.services.member_auth_control import member_auth_control_payload, set_member_auth_enabled
 from app.pricing.product_catalog import normalize_capacity as normalize_catalog_capacity
 
@@ -637,6 +638,15 @@ def admin_collection_sources(
         .group_by(CollectionRun.source_name)
         .all()
     )
+    # recent runs for the health check (a week is plenty for streaks and empty pages)
+    recent: dict[tuple[str, str], list[RunSnapshot]] = {}
+    for row in db.query(CollectionRun.source_type, CollectionRun.source_name, CollectionRun.status,
+                        CollectionRun.started_at, CollectionRun.detail).filter(
+        CollectionRun.source_name.in_([source.name for source in sources]),
+        CollectionRun.started_at >= datetime.now(timezone.utc) - timedelta(days=7),
+    ):
+        recent.setdefault((row.source_type, row.source_name), []).append(
+            RunSnapshot.from_row(row.status, row.started_at, row.detail))
     items = []
     for source in sources:
         run_type = source.kind
@@ -656,8 +666,10 @@ def admin_collection_sources(
             "updated_at": source.updated_at,
             "last_run": _run_payload(run) if run else None,
             "last_success_at": success.get(source.name),
+            "health": assess(recent.get((run_type, source.name), []), enabled=source.enabled,
+                             unsupported=bool(source.unsupported_reason)).to_dict(),
         })
-    return {"items": items}
+    return {"items": items, "health_summary": summarise(item["health"]["state"] for item in items)}
 
 
 def _run_payload(run: CollectionRun) -> dict:
