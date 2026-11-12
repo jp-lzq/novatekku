@@ -163,7 +163,7 @@ def classify(text: str, devices: list[DeviceMention], follow_up: bool = False) -
 
     distinct_models = {device.model for device in devices}
     if len(distinct_models) >= 2:
-        scores[MODEL_COMPARE] += 1.5 if scores[MODEL_COMPARE] else 0.5
+        scores[MODEL_COMPARE] += 2.5 if scores[MODEL_COMPARE] else 0.5
         if any(device.quantity > 1 for device in devices):
             scores[BULK_QUOTE] += 2.0
     if any(device.quantity > 1 for device in devices):
@@ -183,6 +183,8 @@ def classify(text: str, devices: list[DeviceMention], follow_up: bool = False) -
         scores[PRICE_QUOTE] = max(0.0, scores[PRICE_QUOTE] - 2.0)  # "apple price" also contains "price"
     if scores[SELL_TIMING]:
         scores[PRICE_QUOTE] = max(0.0, scores[PRICE_QUOTE] - 2.0)  # "will the buyback price drop?" is about timing
+    if scores[STORE_RANKING]:
+        scores[PRICE_QUOTE] = max(0.0, scores[PRICE_QUOTE] - 2.0)  # "where can I sell … for the highest price" asks for a store
     if scores[MODEL_COMPARE] and scores[BULK_QUOTE] and not any(device.quantity > 1 for device in devices):
         scores[BULK_QUOTE] = 0.0  # "17 pro と 16 pro の差" compares, it does not add up
     if scores[GREETING] and any(scores[name] for name in INTENTS if name != GREETING):
@@ -195,6 +197,9 @@ def classify(text: str, devices: list[DeviceMention], follow_up: bool = False) -
                             scores=scores, cues=cues, markets=markets)
 
     best = max(INTENTS, key=lambda name: (scores[name], -INTENTS.index(name)))
+    if best in PRICE_INTENTS and scores[DEVICE_HELP] and not devices:
+        # "バッテリーの最大容量はどこで見られる？": "どこで" looks like a store question, but it is about the phone
+        return IntentResult(intent=DEVICE_HELP, confidence=scores[DEVICE_HELP] / total, scores=scores, cues=cues, markets=markets)
     if best in PRICE_INTENTS and not devices and not follow_up and not overseas and not _DOMAIN_RE.search(text):
         # "ビットコインの価格は？": a price question, but not about phones
         cues.setdefault(OFF_TOPIC, []).append("no phone or shop words")

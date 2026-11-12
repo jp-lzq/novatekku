@@ -58,7 +58,7 @@ CARRIER_ALIASES: tuple[tuple[str, str], ...] = (
 )
 
 # Counter words after a quantity ("3台", "2部", "5 units").
-QUANTITY_COUNTERS: tuple[str, ...] = ("台", "部", "个", "個", "件", "units", "unit", "pcs", "pieces")
+QUANTITY_COUNTERS: tuple[str, ...] = ("台", "部", "个", "個", "件", "units", "unit", "pcs", "pieces", "of them", "phones")
 # a counter followed by these is a duration ("3个月" = three months), not a number of phones
 DURATION_AFTER = r"(?:月|小时|小時|星期|年|日|天|回|週|周|weeks?|months?|years?|days?)"
 

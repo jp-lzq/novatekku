@@ -159,7 +159,8 @@ def _part_of_other_number(text: str, start: int, end: int) -> bool:
 def _looks_like_model_context(text: str, start: int, end: int) -> bool:
     """A bare "17" counts as a model only near phone words or a capacity ("17 256", "16 売りたい")."""
     window = text[max(0, start - 12):end + 16]
-    if re.search(r"iphone|アイフォン|機種|机型|型号|モデル|model|買取|回收|売|卖|値段|价格|price|sell", window):
+    if re.search(r"iphone|アイフォン|機種|机型|型号|モデル|model|買取|回收|売|卖|値段|价格|price|sell|"
+                 r"发布|發布|発売|出たら|出了|release|launch", window):
         return True
     after = text[end:end + 10]
     if re.match(rf"\s*(?:[x*]\s*\d|\d{{1,3}}\s*(?:{_COUNTER}))", after):
