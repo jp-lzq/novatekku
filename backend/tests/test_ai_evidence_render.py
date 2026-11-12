@@ -163,3 +163,10 @@ def test_preview_for_admin(app):
 def test_preview_validates_input(app, params):
     app.dependency_overrides[require_admin] = lambda: object()
     assert TestClient(app).get("/api/v1/ai/preview", params=params).status_code == 422
+
+
+def test_preview_checks_a_pasted_answer(app):
+    app.dependency_overrides[require_admin] = lambda: object()
+    body = TestClient(app).get("/api/v1/ai/preview", params={"message": "17 pro 256 いくら", "answer": "最高は175,500円です。"}).json()
+    assert body["answer_check"]["status"] == "no_evidence"  # empty database: nothing to confirm against
+    assert "answer_check" not in TestClient(app).get("/api/v1/ai/preview", params={"message": "17 pro"}).json()

@@ -9,6 +9,7 @@ from app.ai_gateway import core as ai_core
 from app.ai_gateway.evidence import collect_price_evidence
 from app.ai_gateway.preprocess import _fx_rates, _fx_updated, build_price_context, prepare_request
 from app.ai_gateway.understanding import understand
+from app.ai_gateway.verify import verify_answer
 from app.ai_gateway.session import AI_HISTORY_MAX_MESSAGES, AI_SESSION_MAX, get_session_state
 from app.db.models import AIConversationLog
 from app.db.session import get_db
@@ -28,6 +29,21 @@ from app.web.schemas import AIChatResponse, AIChatRequest, AIUsageResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def _log_answer_check(reply: str, ai_request) -> None:
+    """Record answers whose amounts do not match the price evidence (the reply is not changed)."""
+    try:
+        report = verify_answer(reply, ai_request.price_evidence, ai_request.price_rows)
+    except Exception:
+        logger.exception("answer check failed")
+        return
+    if report.status == "warning":
+        logger.warning(
+            "AI answer has %d unconfirmed amount(s): %s",
+            len(report.findings),
+            "; ".join(f"{item.kind}:{item.text}" + (f"@{item.store}" if item.store else "") for item in report.findings)[:500],
+        )
 
 
 @router.get("/ai/usage", response_model=AIUsageResponse)
@@ -58,6 +74,7 @@ def ai_usage(
 def ai_preview(
     message: str = Query(min_length=1, max_length=2000),
     language: str = Query("ja", pattern="^(ja|zh|en)$"),
+    answer: str | None = Query(None, max_length=8000, description="an AI answer to check against the evidence"),
     _: AuthContext = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -68,11 +85,14 @@ def ai_preview(
     """
     understanding = understand(message).to_dict()
     evidence = collect_price_evidence(db, understanding, build_price_context(db), _fx_rates(), _fx_updated())
-    return {
+    result = {
         "understanding": understanding,
         "price_evidence": evidence,
         "lines": (evidence.get("lines") or {}).get(language, []),
     }
+    if answer:
+        result["answer_check"] = verify_answer(answer, evidence).to_dict()
+    return result
 
 
 @router.post("/ai/chat", response_model=AIChatResponse)
@@ -102,6 +122,7 @@ def ai_chat(
     ai_request = prepare_request(db, message, payload.language, conversation_history)
     reply = ai_core.answer(ai_request)
     response_language = ai_request.language
+    _log_answer_check(reply, ai_request)
 
     session_state["history"] = (
         conversation_history
