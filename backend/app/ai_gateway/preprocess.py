@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.ai_gateway.core import AIRequest
 from app.ai_gateway.evidence import collect_price_evidence
-from app.ai_gateway.understanding import understand
+from app.ai_gateway.context import resolve_message
 from app.db.store_metadata import get_store_metadata
 from app.pricing.current_prices import latest_prices_query
 from app.pricing.fx_rates import get_cached_fx_rates
@@ -412,7 +412,8 @@ def prepare_request(
     """Turn one user question into the data package sent to the AI core."""
     full_price_data = build_price_context(db)
     matched_price_data = filter_price_context_for_message(message, full_price_data, conversation_history)
-    understanding = understand(message).to_dict()
+    # follow-ups such as "那 512 呢？" take the phone from the earlier user messages
+    understanding = resolve_message(message, conversation_history)
     return AIRequest(
         message=message,
         language=resolve_response_language(preferred_language, message, conversation_history),

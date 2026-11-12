@@ -65,5 +65,6 @@ DURATION_AFTER = r"(?:月|小时|小時|星期|年|日|天|回|週|周|weeks?|mo
 MARKETS: tuple[tuple[str, str], ...] = (
     ("香港", "hk"), ("hong kong", "hk"), ("hongkong", "hk"), ("hk", "hk"),
     ("アメリカ", "us"), ("米国", "us"), ("美国", "us"), ("美國", "us"), ("usa", "us"), ("united states", "us"),
+    ("the us", "us"), ("in us", "us"), ("u.s.", "us"),
     ("日本", "jp"), ("japan", "jp"),
 )
