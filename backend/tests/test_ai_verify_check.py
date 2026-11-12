@@ -95,3 +95,9 @@ def test_report_is_json_ready():
     import json
 
     json.dumps(verify_answer("森森買取なら175,500円", EV, ROWS).to_dict(), ensure_ascii=False)
+
+
+def test_difference_between_two_phones_is_known():
+    ev = evidence("17 pro 256 と 16e 128 どっちが高い？")
+    assert verify_answer("17 Pro の方が 93,500円 高く売れます。", ev, ROWS).status == "ok"  # 175,500 - 82,000
+    assert verify_answer("17 Pro の方が 90,000円 高く売れます。", ev, ROWS).status == "warning"

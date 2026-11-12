@@ -2,7 +2,8 @@
 
 ``known_values`` maps a value (per currency) to the facts it can stand for,
 for example 208000 -> ["iPhone 17 Pro 256 best price (森森買取)"].  Differences
-are stored as absolute values because answers write "1.18万円安い" without a sign.
+(including the gap between two phones' best prices, used in comparisons) are
+stored as absolute values because answers write "1.18万円安い" without a sign.
 ``store_prices`` maps a store to the prices it quotes for the phones in question.
 """
 
@@ -47,6 +48,17 @@ def known_values(evidence: dict) -> dict[tuple[str, int], list[str]]:
                 _add(values, market.get("currency") or "", market.get("price"), label)
                 _add(values, "JPY", market.get("price_jpy"), f"{label} in yen")
                 _add(values, "JPY", market.get("vs_japan"), f"{label} vs Japan")
+    # comparisons: "17 Pro は 16e より 85,500円高い" is the difference of two best prices
+    bests = [
+        (f"{item.get('model')} {entry.get('capacity')}", (entry.get("quotes") or {}).get("best_price"))
+        for item in evidence.get("items") or []
+        for entry in (item.get("capacities") or [])[:6]
+        if (entry.get("quotes") or {}).get("best_price")
+    ]
+    # every pair, also two capacities of one model ("512GB は 256GB より 28,000円高い")
+    for index, (name_a, price_a) in enumerate(bests):
+        for name_b, price_b in bests[index + 1:]:
+            _add(values, "JPY", price_a - price_b, f"{name_a} vs {name_b}")
     bulk = evidence.get("bulk") or {}
     _add(values, "JPY", bulk.get("total"), "bulk total")
     for line in bulk.get("lines") or []:
