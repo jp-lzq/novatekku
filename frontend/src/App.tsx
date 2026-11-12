@@ -16,6 +16,7 @@ const AdminMemberDetail = lazy(() => import('./pages/AdminMemberDetail'))
 const AdminPrices = lazy(() => import('./pages/AdminPrices'))
 const AdminStorePrices = lazy(() => import('./pages/AdminStorePrices'))
 const AdminAIHistory = lazy(() => import('./pages/AdminAIHistory'))
+const AdminAIPreview = lazy(() => import('./pages/AdminAIPreview'))
 const AdminCollectionSources = lazy(() => import('./pages/AdminCollectionSources'))
 const AI = lazy(() => import('./pages/AI'))
 const AITest = lazy(() => import('./pages/AITest'))
@@ -92,6 +93,7 @@ function App() {
           <Route path="/admin/prices" element={<AdminPrices />} />
           <Route path="/admin/prices/:storeId" element={<AdminStorePrices />} />
           <Route path="/admin/ai-history" element={<AdminAIHistory />} />
+          <Route path="/admin/ai-preview" element={<AdminAIPreview />} />
           <Route path="/admin/collection-sources" element={<AdminCollectionSources />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/global" element={<Global />} />

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, Database, MessageSquare, Power, RotateCcw, ShieldAlert, Users, Workflow } from 'lucide-react'
+import { ChevronRight, Database, MessageSquare, Power, RotateCcw, ScanSearch, ShieldAlert, Users, Workflow } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import AdminShell, { dateTime, useAdminAccess } from '../components/AdminShell'
 import { apiGet, apiPost } from '../lib/api'
@@ -36,6 +36,12 @@ const modules = [
     Icon: MessageSquare,
     title: 'AI記録',
     description: '会員と訪問者の質問、回答、利用日時、IPを確認します。',
+  },
+  {
+    to: '/admin/ai-preview',
+    Icon: ScanSearch,
+    title: 'AIプレビュー',
+    description: '質問の理解、AI に渡す価格の根拠、回答の金額の照合を本番データで確認します。',
   },
 ]
 
