@@ -480,3 +480,45 @@ class SiteAd(Base):
     __table_args__ = (
         UniqueConstraint("slot", "key", name="uix_site_ads_slot_key"),
     )
+
+
+class MarketStore(Base):
+    """海外の買取店。日本の stores と同じ役割だが、日本の店舗一覧や比較に混ざらないよう別の表にする。
+
+    アメリカは買取業者ごとに 1 行。香港は店名が公開されていないため市場全体を 1 行（name="香港"）で表す。
+    """
+    __tablename__ = "market_stores"
+
+    id = Column(Integer, primary_key=True)
+    market = Column(String(8), nullable=False, index=True)  # hk / us
+    name = Column(String(100), nullable=False)
+    currency = Column(String(3), nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="true")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("market", "name", name="uix_market_store_market_name"),
+    )
+
+
+class MarketStorePrice(Base):
+    """海外の店舗別買取価格。日本の store_product_prices と同じ「時間・店舗・型番・価格」の形。
+
+    型番は日本と同じ products / product_variants を指す。色を区別しない市場（アメリカ）は
+    product_variant_id を空にし、product_id（機種＋容量）だけを持つ。価格は現地通貨。
+    """
+    __tablename__ = "market_store_prices"
+
+    id = Column(Integer, primary_key=True)
+    collected_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    market_store_id = Column(Integer, ForeignKey("market_stores.id"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, index=True)
+    product_variant_id = Column(Integer, ForeignKey("product_variants.id"), nullable=True, index=True)
+    price = Column(Integer, nullable=False)
+    currency = Column(String(3), nullable=False)
+    source = Column(String(40), nullable=False)  # parser key, e.g. bankmycell
+    run_id = Column(Integer, ForeignKey("collection_runs.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    __table_args__ = (
+        Index("ix_market_store_prices_lookup", "market_store_id", "product_id", "collected_at"),
+    )

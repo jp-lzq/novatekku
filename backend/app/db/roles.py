@@ -37,6 +37,8 @@ PRICE_TABLES = (
     "collection_runs",
     "price_collection_sources",
     "market_prices",
+    "market_stores",
+    "market_store_prices",
 )
 SOURCE_TABLES = ("collection_sources",)
 CONTENT_TABLES = ("site_ads",)  # written only by the owner
