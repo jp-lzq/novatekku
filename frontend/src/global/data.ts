@@ -43,3 +43,20 @@ export function useGlobalBoards() {
     isError: japan.isError,
   }
 }
+
+export interface MarketStoreResponse {
+  market: 'hk' | 'us'
+  currency: 'HKD' | 'USD'
+  updated_at: string | null
+  products: { model: string; capacity: string; color_code: string | null; stores: { store: string; price: number; collected_at: string }[] }[]
+}
+
+/** Prices per store for one overseas market (the US lists every buyer; Hong Kong is one store, "香港"). */
+export function useMarketStores(market: 'hk' | 'us', enabled: boolean) {
+  return useQuery<MarketStoreResponse>({
+    queryKey: ['prices', 'market-stores', market],
+    queryFn: () => apiGet<MarketStoreResponse>('/api/v1/prices/market-stores', { params: { market } }),
+    staleTime: 60_000,
+    enabled,
+  })
+}

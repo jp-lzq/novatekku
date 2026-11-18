@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useI18n } from '../i18n'
 import { convert, type Currency } from './currency'
-import type { ModelBoards } from './data'
-import { ALL_COLORS, MARKETS, bestPrice, capacityLabel, sortCapacities, type MarketBoard, type MarketId } from './markets'
+import type { MarketStoreResponse, ModelBoards } from './data'
+import { ALL_COLORS, MARKETS, bestPrice, capacityLabel, japanTime, sortCapacities, type MarketBoard, type MarketId } from './markets'
 import { globalText } from './text'
 import { ColorDot, Diff, Money, PhoneArt, SampleBadge } from './ui'
 
@@ -124,6 +125,63 @@ export function GlobalBoard({ entry, currency, rates }: { entry: ModelBoards; cu
           })}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+const TOP_STORES = 5
+
+/** Store-by-store prices for one model, like the Japanese price table: every capacity, best first. */
+export function StoreRanking({ model, data, currency, rates }: {
+  model: string
+  data: MarketStoreResponse | undefined
+  currency: Currency
+  rates: Rates
+}) {
+  const { language } = useI18n()
+  const text = globalText(language)
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const rows = (data?.products ?? []).filter((row) => row.model === model && row.color_code === null && row.stores.length > 0)
+  if (!data || rows.length === 0) return null
+  return (
+    <div className="mt-3 rounded-2xl border border-white/10 bg-[#121317] p-4" data-testid="store-ranking">
+      <h3 className="text-sm font-semibold text-slate-300">{text.storeRanking}</h3>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        {sortCapacities(rows.map((row) => row.capacity)).map((capacity) => {
+          const row = rows.find((item) => item.capacity === capacity)!
+          const open = expanded[capacity] ?? false
+          const best = row.stores[0].price
+          const shown = open ? row.stores : row.stores.slice(0, TOP_STORES)
+          return (
+            <div key={capacity} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+              <p className="flex items-baseline justify-between text-sm">
+                <span className="font-medium">{capacityLabel(capacity)}</span>
+                <span className="text-xs text-slate-500">{text.stores(row.stores.length)}</span>
+              </p>
+              <ol className="mt-2 space-y-1.5">
+                {shown.map((store, index) => (
+                  <li key={store.store} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className={`w-5 shrink-0 text-right text-xs tabular-nums ${index === 0 ? 'font-semibold text-emerald-300' : 'text-slate-500'}`}>{index + 1}</span>
+                      <span className={`truncate ${index === 0 ? 'text-emerald-200' : 'text-slate-200'}`} title={text.quotedAt(japanTime(store.collected_at))}>{store.store}</span>
+                    </span>
+                    <span className="flex shrink-0 items-baseline gap-2">
+                      <Money amount={store.price} from={data.currency} to={currency} rates={rates} compact />
+                      {index > 0 && <Diff amount={store.price} official={best} from={data.currency} to={currency} rates={rates} />}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              {row.stores.length > TOP_STORES && (
+                <button type="button" onClick={() => setExpanded({ ...expanded, [capacity]: !open })} className="mt-2 text-xs font-medium text-emerald-300 hover:text-emerald-200">
+                  {open ? text.showFewerStores : text.showAllStores(row.stores.length)}
+                </button>
+              )}
+              <p className="mt-2 text-[11px] text-slate-500">{text.quotedAt(japanTime(row.stores[0].collected_at))}</p>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

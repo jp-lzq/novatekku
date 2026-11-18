@@ -201,3 +201,15 @@ export function generationOf(model: string) {
   if (/iPhone Duo/.test(model)) return 18 // the foldable launched with the 18 series
   return Number(model.match(/iPhone (\d+)/)?.[1] ?? 0)
 }
+
+/** "2026-11-18 15:00" in Japan time from an ISO timestamp (the API sends UTC). */
+export function japanTime(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso.replace('T', ' ').slice(0, 16)
+  const parts = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(date)
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? ''
+  return `${part('year')}-${part('month')}-${part('day')} ${part('hour')}:${part('minute')}`
+}

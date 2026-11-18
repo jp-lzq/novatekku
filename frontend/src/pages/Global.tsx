@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n'
-import { GlobalBoard, MarketTable } from '../global/boards'
+import { GlobalBoard, MarketTable, StoreRanking } from '../global/boards'
 import { useDisplayCurrency, useFxRates, type Currency } from '../global/currency'
-import { useGlobalBoards, type ModelBoards } from '../global/data'
-import { MARKETS, basePrice, capacityLabel, generationOf, modelSlug, parseTab, tabCurrency, type MarketId, type Tab } from '../global/markets'
+import { useGlobalBoards, useMarketStores, type ModelBoards } from '../global/data'
+import { MARKETS, basePrice, capacityLabel, generationOf, modelSlug, japanTime, parseTab, tabCurrency, type MarketId, type Tab } from '../global/markets'
 import { globalText } from '../global/text'
 import { GlobalShell, Money, PhoneArt } from '../global/ui'
 
@@ -61,6 +61,8 @@ export default function Global() {
   }
 
   const marketUpdated = tab === 'hk' || tab === 'us' ? updated[tab] : null
+  // the US lists every buyer; Hong Kong is shown as one market ("香港"), so it has no ranking
+  const usStores = useMarketStores('us', tab === 'us')
 
   return (
     <GlobalShell tab={tab} tabHref={(value) => href(value, selected?.number)} currency={currency} manualCurrency={manual} onCurrency={choose}>
@@ -71,7 +73,7 @@ export default function Global() {
         </div>
         <p className="text-xs text-slate-500">
           {text.models(visible.length)}
-          {marketUpdated ? ` · ${text.priceUpdated(marketUpdated.replace('T', ' ').slice(0, 16))}` : ''}
+          {marketUpdated ? ` · ${text.priceUpdated(japanTime(marketUpdated))}` : ''}
           {updatedAt ? ` · ${text.rateNote(updatedAt.replace('T', ' ').slice(0, 16))}` : ''}
         </p>
       </section>
@@ -97,6 +99,7 @@ export default function Global() {
                 {tab === 'global'
                   ? <GlobalBoard entry={entry} currency={currency} rates={rates} />
                   : <MarketTable board={entry[tab]!} currency={currency} rates={rates} />}
+                {tab === 'us' && <StoreRanking model={entry.model} data={usStores.data} currency={currency} rates={rates} />}
               </section>
             ))}
           </div>
