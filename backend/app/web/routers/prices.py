@@ -13,6 +13,8 @@ from app.db.session import get_db
 from app.db.models import (
     DailyHighPrice,
     MarketPrice,
+    MarketStore,
+    MarketStorePrice,
     Price,
     PriceHistory,
     Product,
@@ -420,6 +422,63 @@ def get_market_prices(
     db: Session = Depends(get_db),
 ):
     return PUBLIC_PRICE_CACHE.get_or_set(("markets", market), lambda: _market_prices(db, market))
+
+
+@router.get("/prices/market-stores")
+def get_market_store_prices(
+    market: str = Query(..., pattern="^(hk|us)$"),
+    db: Session = Depends(get_db),
+):
+    """Overseas prices per store, the same "time, store, model, price" view as Japan.
+
+    For every model + capacity (+ colour where the market prices colours) the
+    latest price of each store from the last MARKET_MAX_AGE_HOURS, best first.
+    Hong Kong is one store called "香港" because its shops are not named publicly.
+    """
+    return PUBLIC_PRICE_CACHE.get_or_set(("market-stores", market), lambda: _market_store_prices(db, market))
+
+
+def _market_store_prices(db: Session, market: str) -> dict:
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=MARKET_MAX_AGE_HOURS)
+    rows = (
+        db.query(MarketStorePrice, MarketStore.name, Product.model, Product.capacity, ProductVariant.color_code)
+        .join(MarketStore, MarketStore.id == MarketStorePrice.market_store_id)
+        .join(Product, Product.id == MarketStorePrice.product_id)
+        .outerjoin(ProductVariant, ProductVariant.id == MarketStorePrice.product_variant_id)
+        .filter(MarketStore.market == market, MarketStore.is_active.is_(True), MarketStorePrice.collected_at >= cutoff)
+        .order_by(MarketStorePrice.collected_at.desc(), MarketStorePrice.id.desc())
+        .all()
+    )
+    latest: dict[tuple[int, int, int | None], tuple] = {}
+    for row in rows:  # newest first: the first row of each store + phone is its current price
+        key = (row.MarketStorePrice.market_store_id, row.MarketStorePrice.product_id, row.MarketStorePrice.product_variant_id)
+        latest.setdefault(key, row)
+
+    groups: dict[tuple[str, str, str | None], list[dict]] = defaultdict(list)
+    updated_at = None
+    for row in latest.values():
+        price = row.MarketStorePrice
+        groups[(row.model, row.capacity, row.color_code)].append({
+            "store": row.name,
+            "price": price.price,
+            "collected_at": price.collected_at.isoformat(),
+        })
+        updated_at = max(updated_at or price.collected_at, price.collected_at)
+
+    def capacity_order(value: str) -> int:
+        order = ["64", "128", "256", "512", "1TB", "2TB"]
+        return order.index(value) if value in order else len(order)
+
+    products = []
+    for (model, capacity, color), stores in sorted(groups.items(), key=lambda item: (item[0][0], capacity_order(item[0][1]), item[0][2] or "")):
+        stores.sort(key=lambda item: (-item["price"], item["store"]))
+        products.append({"model": model, "capacity": capacity, "color_code": color, "stores": stores})
+    return {
+        "market": market,
+        "currency": MARKET_CURRENCY[market],
+        "updated_at": updated_at.isoformat() if updated_at else None,
+        "products": products,
+    }
 
 
 def _market_prices(db: Session, market: str) -> dict:
