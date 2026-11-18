@@ -11,7 +11,7 @@ interface CollectionRunSummary {
   error_message?: string | null
 }
 
-type HealthState = 'failing' | 'stale' | 'degraded' | 'unknown' | 'healthy' | 'unsupported' | 'disabled'
+type HealthState = 'failing' | 'stale' | 'degraded' | 'unknown' | 'idle' | 'healthy' | 'unsupported' | 'disabled'
 
 interface SourceHealth {
   state: HealthState
@@ -45,6 +45,7 @@ const statusStyles: Record<string, string> = {
   failed: 'bg-rose-50 text-rose-700',
   unsupported: 'bg-slate-100 text-slate-500',
   running: 'bg-sky-50 text-sky-700',
+  skipped: 'bg-sky-50 text-sky-700',
 }
 
 // worst first; the same order the summary uses
@@ -53,6 +54,7 @@ const healthStyles: Record<HealthState, { label: string; tone: string }> = {
   stale: { label: '長時間成功なし', tone: 'bg-rose-50 text-rose-700' },
   degraded: { label: '要確認', tone: 'bg-amber-50 text-amber-700' },
   unknown: { label: '未収集', tone: 'bg-slate-100 text-slate-500' },
+  idle: { label: '更新休止', tone: 'bg-sky-50 text-sky-700' },
   healthy: { label: '正常', tone: 'bg-emerald-50 text-emerald-700' },
   unsupported: { label: '未対応', tone: 'bg-slate-100 text-slate-500' },
   disabled: { label: '停止中', tone: 'bg-slate-100 text-slate-500' },

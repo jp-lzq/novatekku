@@ -10,6 +10,8 @@ and returns a state with plain reasons:
 - ``stale``     no successful run within STALE_HOURS although runs keep happening
 - ``degraded``  it works, but under half of the runs in the window succeeded,
                 or most pages of the recent successful runs were empty
+- ``idle``      the source answers but only has old prices (a site that is
+                updated only around launches); not an error
 - ``healthy``   none of the above
 - ``unsupported`` / ``disabled`` / ``unknown`` (no runs yet) are reported as such
 """
@@ -29,7 +31,8 @@ EMPTY_PAGE_RATIO = 0.5
 SUCCESS_STATES = ("success", "partial")
 
 # worst first, for sorting and for the summary
-STATES = ("failing", "stale", "degraded", "unknown", "healthy", "unsupported", "disabled")
+STATES = ("failing", "stale", "degraded", "unknown", "idle", "healthy", "unsupported", "disabled")
+IDLE_STATES = ("skipped",)  # the collector found only old prices on purpose-built boards
 
 
 @dataclass
@@ -79,6 +82,12 @@ def assess(runs: Iterable[RunSnapshot], *, enabled: bool = True, unsupported: bo
     real = [run for run in ordered if run.status != "unsupported"]
     if not real:
         return Health("unknown", ["まだ収集していない"])
+    if real[0].status in IDLE_STATES:
+        # the latest run found the site up but without new prices: waiting, not failing
+        successes = [run for run in real if run.status in SUCCESS_STATES]
+        return Health("idle", ["サイトの価格が更新されていない（発売時期だけ更新）"],
+                      last_success_at=_aware(successes[0].started_at) if successes else None)
+    real = [run for run in real if run.status not in IDLE_STATES]
     now = _aware(now or datetime.now(timezone.utc))
 
     streak = 0

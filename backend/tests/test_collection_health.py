@@ -128,3 +128,22 @@ def test_collection_sources_include_health():
     health = {item["name"]: item["health"]["state"] for item in body["items"]}
     assert health == {"A 公式": "failing", "B 公式": "healthy", "香港 X": "healthy"}
     assert body["health_summary"]["failing"] == 1 and body["health_summary"]["healthy"] == 2
+
+
+def test_launch_only_source_is_idle_not_failing():
+    """iphonepricehk: the page answers but only has prices from the last launch."""
+    health = assess([run("skipped", 1), run("skipped", 5), run("skipped", 30), run("success", 200)], now=NOW)
+    assert health.state == "idle"
+    assert health.reasons == ["サイトの価格が更新されていない（発売時期だけ更新）"]
+    assert health.last_success_at is not None
+
+
+def test_skipped_runs_do_not_hide_a_new_failure():
+    health = assess([run("failed", 1), run("failed", 2), run("failed", 3), run("skipped", 4)], now=NOW)
+    assert health.state == "failing"
+
+
+def test_idle_is_ordered_after_problems():
+    from app.web.services.collection_health import STATES
+
+    assert STATES.index("idle") > STATES.index("degraded") and STATES.index("idle") < STATES.index("healthy")
