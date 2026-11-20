@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.db.models import MarketPrice, PriceHistory, Product, Store
+from app.db.models import MarketPrice, MarketStore, MarketStorePrice, PriceHistory, Product, ProductVariant, Store
 from app.infrastructure.ttl_cache import TTLCache
 from app.pricing.market_average import _price_ceiling
 from app.pricing.price_consensus import DEFAULT_MIN_STORE_COUNT, partition_consensus
@@ -138,3 +138,28 @@ def load_market_snapshots(db: Session, models: set[str]) -> list[dict]:
                          "capacity": normalise_capacity(row.capacity), "color_code": row.color_code,
                          "price": row.price, "currency": row.currency, "offers": row.offers})
     return rows
+
+
+def load_market_store_snapshots(db: Session, models: set[str]) -> list[dict]:
+    """Each overseas store's latest price (younger than 48 hours) for the given models."""
+    if not models:
+        return []
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=MARKET_MAX_AGE_HOURS)
+    rows = (
+        db.query(MarketStorePrice.market_store_id, MarketStorePrice.product_id, MarketStorePrice.product_variant_id,
+                 MarketStorePrice.price, MarketStorePrice.currency, MarketStorePrice.collected_at,
+                 MarketStore.market, MarketStore.name, Product.model, Product.capacity, ProductVariant.color_code)
+        .join(MarketStore, MarketStore.id == MarketStorePrice.market_store_id)
+        .join(Product, Product.id == MarketStorePrice.product_id)
+        .outerjoin(ProductVariant, ProductVariant.id == MarketStorePrice.product_variant_id)
+        .filter(MarketStore.is_active.is_(True), MarketStorePrice.collected_at >= cutoff, Product.model.in_(sorted(models)))
+        .order_by(MarketStorePrice.collected_at.desc(), MarketStorePrice.id.desc())
+        .all()
+    )
+    latest: dict[tuple, dict] = {}
+    for row in rows:  # newest first: keep each store's current price per phone
+        key = (row.market_store_id, row.product_id, row.product_variant_id)
+        latest.setdefault(key, {"market": row.market, "store": row.name, "model": row.model,
+                                "capacity": normalise_capacity(row.capacity), "color_code": row.color_code,
+                                "price": int(row.price), "currency": row.currency})
+    return list(latest.values())

@@ -97,6 +97,8 @@ def _quote_line(model: str, entry: dict, text: dict) -> str:
         parts.append(text["slope"].format(value=yen(trend["slope_per_week"], True)))
     for market in entry.get("overseas") or []:
         line = f"{text[market['market']]} {money(market['price'], market['currency'])}"
+        if market.get("best_store"):
+            line += f" ({market['best_store']})"
         if market.get("price_jpy") is not None:
             line += f" = {yen(market['price_jpy'])}"
         if market.get("vs_japan") is not None:

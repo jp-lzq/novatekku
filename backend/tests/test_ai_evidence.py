@@ -9,13 +9,13 @@ from sqlalchemy.pool import StaticPool
 
 from app.ai_gateway.evidence import build_price_evidence, collect_price_evidence
 from app.ai_gateway.evidence.bulk import bulk_total
-from app.ai_gateway.evidence.loaders import PAST_DAYS_CACHE, daily_best_from_history, load_daily_best, load_market_snapshots
+from app.ai_gateway.evidence.loaders import PAST_DAYS_CACHE, daily_best_from_history, load_daily_best, load_market_snapshots, load_market_store_snapshots
 from app.ai_gateway.evidence.matching import index_rows, match_device, normalise_capacity
-from app.ai_gateway.evidence.overseas import best_overseas, compare_markets, to_yen
+from app.ai_gateway.evidence.overseas import attach_store_rankings, best_overseas, compare_markets, store_ranking, to_yen
 from app.ai_gateway.evidence.quotes import summarise_quotes
 from app.ai_gateway.evidence.trend import summarise_trend, weekly_slope
 from app.ai_gateway.understanding import understand
-from app.db.models import MarketPrice, PriceHistory, Product, Store
+from app.db.models import MarketPrice, MarketStore, MarketStorePrice, PriceHistory, Product, ProductVariant, Store
 from app.db.session import Base
 
 RATES = {"USD": {"rate": 150.0}, "HKD": {"rate": 20.0}}
@@ -440,3 +440,91 @@ def test_collect_price_evidence_never_raises():
             raise RuntimeError("database down")
 
     assert collect_price_evidence(Broken(), understand("17 pro 256 いくら").to_dict(), PRICE_ROWS) == {}
+
+
+
+# ---------------------------------------------------------------------------
+# overseas stores ("which US buyer pays the most")
+# ---------------------------------------------------------------------------
+
+STORE_ROWS = [
+    {"market": "us", "store": "Buyer A", "model": "iPhone 17 Pro", "capacity": "256", "color_code": "silver", "price": 1000, "currency": "USD"},
+    {"market": "us", "store": "Buyer A", "model": "iPhone 17 Pro", "capacity": "256", "color_code": "blue", "price": 960, "currency": "USD"},
+    {"market": "us", "store": "Buyer B", "model": "iPhone 17 Pro", "capacity": "256", "color_code": None, "price": 980, "currency": "USD"},
+    {"market": "us", "store": "Buyer C", "model": "iPhone 17 Pro", "capacity": "256", "color_code": None, "price": 980, "currency": "USD"},
+    {"market": "us", "store": "Buyer D", "model": "iPhone 17 Pro", "capacity": "512", "color_code": None, "price": 1200, "currency": "USD"},
+    {"market": "hk", "store": "香港", "model": "iPhone 17 Pro", "capacity": "256", "color_code": "silver", "price": 10800, "currency": "HKD"},
+]
+
+
+def test_store_ranking_merges_colours_and_orders_ties_by_name():
+    ranked = store_ranking(STORE_ROWS, "us", "iPhone 17 Pro", "256", RATES)
+    assert [(item["store"], item["price"]) for item in ranked] == [("Buyer A", 1000), ("Buyer B", 980), ("Buyer C", 980)]
+    assert ranked[0]["price_jpy"] == 150000 and ranked[0]["currency"] == "USD"
+
+
+def test_store_ranking_limit_and_other_capacity():
+    assert len(store_ranking(STORE_ROWS, "us", "iPhone 17 Pro", "256", RATES, limit=2)) == 2
+    assert [item["store"] for item in store_ranking(STORE_ROWS, "us", "iPhone 17 Pro", "512", RATES)] == ["Buyer D"]
+    assert store_ranking(STORE_ROWS, "us", "iPhone 16e", "128", RATES) == []
+
+
+def test_unnamed_market_store_is_not_listed():
+    assert store_ranking(STORE_ROWS, "hk", "iPhone 17 Pro", "256", RATES) == []
+
+
+def test_store_ranking_without_a_rate_keeps_the_local_price():
+    ranked = store_ranking(STORE_ROWS, "us", "iPhone 17 Pro", "256", {})
+    assert ranked[0]["price"] == 1000 and ranked[0]["price_jpy"] is None
+
+
+def test_attach_store_rankings():
+    markets = [{"market": "us", "price": 1000, "currency": "USD"}, {"market": "hk", "price": 10800, "currency": "HKD"}]
+    attach_store_rankings(markets, STORE_ROWS, "iPhone 17 Pro", "256", RATES)
+    assert markets[0]["best_store"] == "Buyer A" and len(markets[0]["stores"]) == 3
+    assert "stores" not in markets[1] and "best_store" not in markets[1]
+
+
+def test_evidence_names_the_best_us_store():
+    result = evidence("iPhone 17 Pro 256GB アメリカならいくら？", market_rows=MARKET_ROWS, market_store_rows=STORE_ROWS)
+    overseas = {market["market"]: market for market in result["items"][0]["capacities"][0]["overseas"]}
+    assert overseas["us"]["best_store"] == "Buyer A"
+    assert [store["store"] for store in overseas["us"]["stores"]] == ["Buyer A", "Buyer B", "Buyer C"]
+    assert "stores" not in overseas["hk"]
+
+
+def test_evidence_without_store_rows_has_no_store_names():
+    result = evidence("iPhone 17 Pro 256GB アメリカならいくら？", market_rows=MARKET_ROWS)
+    assert all("stores" not in market for market in result["items"][0]["capacities"][0]["overseas"])
+
+
+def seed_market_stores(db):
+    product = Product(name="iPhone 17 Pro 256GB", model="iPhone 17 Pro", capacity="256GB", retail_price=219800)
+    db.add(product)
+    db.commit()
+    silver = ProductVariant(product_id=product.id, color_code="silver", color_name_ja="シルバー",
+                            color_name_en="Silver", color_name_zh="银色")
+    buyer_a = MarketStore(market="us", name="Buyer A", currency="USD")
+    buyer_b = MarketStore(market="us", name="Buyer B", currency="USD", is_active=False)
+    db.add_all([silver, buyer_a, buyer_b])
+    db.commit()
+    return product, silver, buyer_a, buyer_b
+
+
+def test_load_market_store_snapshots_keeps_each_stores_latest_fresh_price(db):
+    product, silver, buyer_a, buyer_b = seed_market_stores(db)
+    now = datetime.now(timezone.utc)
+    common = {"product_id": product.id, "currency": "USD", "source": "test"}
+    db.add_all([
+        MarketStorePrice(**common, market_store_id=buyer_a.id, product_variant_id=silver.id, price=990, collected_at=now - timedelta(hours=6)),
+        MarketStorePrice(**common, market_store_id=buyer_a.id, product_variant_id=silver.id, price=1010, collected_at=now - timedelta(hours=1)),
+        MarketStorePrice(**common, market_store_id=buyer_a.id, product_variant_id=None, price=950, collected_at=now - timedelta(hours=2)),
+        MarketStorePrice(**common, market_store_id=buyer_a.id, product_variant_id=silver.id, price=2000, collected_at=now - timedelta(hours=60)),
+        MarketStorePrice(**common, market_store_id=buyer_b.id, product_variant_id=None, price=1500, collected_at=now - timedelta(hours=1)),
+    ])
+    db.commit()
+    rows = sorted(load_market_store_snapshots(db, {"iPhone 17 Pro"}), key=lambda item: item["price"])
+    assert [(item["store"], item["color_code"], item["price"]) for item in rows] == [("Buyer A", None, 950), ("Buyer A", "silver", 1010)]
+    assert rows[1]["capacity"] == "256" and rows[1]["market"] == "us"
+    assert load_market_store_snapshots(db, set()) == []
+    assert load_market_store_snapshots(db, {"iPhone 16e"}) == []

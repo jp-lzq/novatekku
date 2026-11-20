@@ -22,9 +22,9 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from .bulk import bulk_total
-from .loaders import load_daily_best, load_market_snapshots
+from .loaders import load_daily_best, load_market_snapshots, load_market_store_snapshots
 from .matching import index_rows, match_device
-from .overseas import best_overseas, compare_markets
+from .overseas import attach_store_rankings, best_overseas, compare_markets
 from .quotes import summarise_quotes
 from .render import render_evidence
 from .trend import summarise_trend
@@ -41,6 +41,7 @@ def build_price_evidence(
     *,
     daily_best: dict | None = None,
     market_rows: list[dict] | None = None,
+    market_store_rows: list[dict] | None = None,
     fx_rates: dict | None = None,
     fx_updated: str | None = None,
     today: date | None = None,
@@ -49,6 +50,7 @@ def build_price_evidence(
     index = index_rows(price_rows)
     daily_best = daily_best or {}
     market_rows = market_rows or []
+    market_store_rows = market_store_rows or []
     fx_rates = fx_rates or {}
     all_devices = understanding.get("devices") or []
     devices = all_devices[:MAX_DEVICES]
@@ -80,8 +82,9 @@ def build_price_evidence(
                 "capacity": capacity,
                 "quotes": quotes,
                 "trend": summarise_trend(daily_best.get((match.model, capacity), []), today),
-                "overseas": compare_markets(quotes.get("best_price"),
-                                            best_overseas(market_rows, match.model, capacity), fx_rates),
+                "overseas": attach_store_rankings(
+                    compare_markets(quotes.get("best_price"), best_overseas(market_rows, match.model, capacity), fx_rates),
+                    market_store_rows, match.model, capacity, fx_rates),
             }
             item["capacities"].append(entry)
             if capacity == priced_capacity:
@@ -125,6 +128,7 @@ def collect_price_evidence(db: Session, understanding: dict, price_rows: list[di
             price_rows,
             daily_best=load_daily_best(db, keys),
             market_rows=load_market_snapshots(db, {model for model, _ in keys}),
+            market_store_rows=load_market_store_snapshots(db, {model for model, _ in keys}),
             fx_rates=fx_rates,
             fx_updated=fx_updated,
         )

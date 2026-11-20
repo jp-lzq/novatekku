@@ -49,3 +49,36 @@ def compare_markets(japan_best: int | None, overseas: dict[str, dict], rates: di
             entry["vs_japan_percent"] = round((yen - japan_best) / japan_best * 100, 1)
         result.append(entry)
     return sorted(result, key=lambda item: -(item.get("price_jpy") or 0))
+
+
+# a market whose shops are not named publicly is one store with the market's name
+UNNAMED_MARKET_STORES = {"香港"}
+STORE_RANKING_SIZE = 5
+
+
+def store_ranking(rows: list[dict], market: str, model: str, capacity: str, rates: dict,
+                  limit: int = STORE_RANKING_SIZE) -> list[dict]:
+    """Best named stores of one market for a phone (colours merged per store), best first."""
+    best: dict[str, dict] = {}
+    for row in rows:
+        if row.get("market") != market or row.get("model") != model or str(row.get("capacity")) != capacity:
+            continue
+        if row.get("store") in UNNAMED_MARKET_STORES:
+            continue
+        price = int(row["price"])
+        if row["store"] not in best or price > best[row["store"]]["price"]:
+            best[row["store"]] = {"store": row["store"], "price": price, "currency": row.get("currency") or MARKET_CURRENCY.get(market, "")}
+    ranked = sorted(best.values(), key=lambda item: (-item["price"], item["store"]))[:limit]
+    for item in ranked:
+        item["price_jpy"] = to_yen(item["price"], item["currency"], rates)
+    return ranked
+
+
+def attach_store_rankings(markets: list[dict], store_rows: list[dict], model: str, capacity: str, rates: dict) -> list[dict]:
+    """Add the named stores behind each market's price ("which US buyer pays the most")."""
+    for entry in markets:
+        stores = store_ranking(store_rows, entry["market"], model, capacity, rates)
+        if stores:
+            entry["stores"] = stores
+            entry["best_store"] = stores[0]["store"]
+    return markets

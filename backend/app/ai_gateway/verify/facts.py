@@ -48,6 +48,9 @@ def known_values(evidence: dict) -> dict[tuple[str, int], list[str]]:
                 _add(values, market.get("currency") or "", market.get("price"), label)
                 _add(values, "JPY", market.get("price_jpy"), f"{label} in yen")
                 _add(values, "JPY", market.get("vs_japan"), f"{label} vs Japan")
+                for store in market.get("stores") or []:
+                    _add(values, store.get("currency") or market.get("currency") or "", store.get("price"), f"{label} {store.get('store')}")
+                    _add(values, "JPY", store.get("price_jpy"), f"{label} {store.get('store')} in yen")
     # comparisons: "17 Pro は 16e より 85,500円高い" is the difference of two best prices
     bests = [
         (f"{item.get('model')} {entry.get('capacity')}", (entry.get("quotes") or {}).get("best_price"))

@@ -170,3 +170,15 @@ def test_preview_checks_a_pasted_answer(app):
     body = TestClient(app).get("/api/v1/ai/preview", params={"message": "17 pro 256 いくら", "answer": "最高は175,500円です。"}).json()
     assert body["answer_check"]["status"] == "no_evidence"  # empty database: nothing to confirm against
     assert "answer_check" not in TestClient(app).get("/api/v1/ai/preview", params={"message": "17 pro"}).json()
+
+
+def test_render_names_the_best_overseas_store():
+    markets = MARKETS + [{"market": "us", "model": "iPhone 17 Pro", "capacity": "256", "color_code": None, "price": 1500,
+                          "currency": "USD", "offers": 2}]
+    stores = [{"market": "us", "store": "Buyer A", "model": "iPhone 17 Pro", "capacity": "256", "color_code": None,
+               "price": 1500, "currency": "USD"}]
+    result = build_price_evidence(understand("iPhone 17 Pro 256 アメリカならいくら？").to_dict(), ROWS, daily_best=DAILY,
+                                  market_rows=markets, market_store_rows=stores, fx_rates=RATES, today=TODAY)
+    text = "\n".join(render_evidence(result, "ja"))
+    assert "$1,500 (Buyer A)" in text
+    assert "HK$10,800 =" in text and "HK$10,800 (" not in text
