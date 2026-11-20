@@ -159,3 +159,9 @@
 {"id": "en-follow-02", "lang": "en", "q": "and in the US?", "history": ["how much is iphone 16e 128"], "expect": {"intent": "overseas_market", "models": ["iPhone 16e"], "markets": ["us"]}}
 {"id": "en-follow-03", "lang": "en", "q": "how about 3 of them", "history": ["how much is iphone 16e 128"], "expect": {"models": ["iPhone 16e"], "quantities": [3]}}
 {"id": "en-follow-04", "lang": "en", "q": "what's the price of gold", "history": ["how much is iphone 16e 128"], "expect": {"intent": "off_topic", "models": []}}
+{"id": "ja-global-01", "lang": "ja", "q": "17 pro 256 世界で一番高く売れるのはどこ？", "expect": {"intent": "overseas_market", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "ja-global-02", "lang": "ja", "q": "16e 128 海外と日本、どこで売るべき？", "expect": {"intent": "overseas_market", "models": ["iPhone 16e"], "capacities": ["128"]}}
+{"id": "zh-global-01", "lang": "zh", "q": "17pro max 512 全球哪里回收最贵", "expect": {"intent": "overseas_market", "models": ["iPhone 17 Pro Max"], "capacities": ["512"]}}
+{"id": "zh-global-02", "lang": "zh", "q": "iPhone 17 256 日本香港美国比较一下，在哪卖好", "expect": {"intent": "overseas_market", "models": ["iPhone 17"], "capacities": ["256"], "markets": ["hk", "us"]}}
+{"id": "en-global-01", "lang": "en", "q": "where in the world does iPhone 17 Pro 256 sell for the most?", "expect": {"intent": "overseas_market", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "en-global-02", "lang": "en", "q": "compare Japan, Hong Kong and the US for iPhone Air 256, where should I sell?", "expect": {"intent": "overseas_market", "models": ["iPhone 17 Air"], "capacities": ["256"], "markets": ["hk", "us"]}}

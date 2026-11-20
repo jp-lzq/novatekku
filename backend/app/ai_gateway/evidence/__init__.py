@@ -6,7 +6,8 @@ this package looks them up and returns, for each model and capacity:
 - the current quotes: best store and price, runner-up, ranking, market
   average, comparison with Apple's retail price (quotes.py);
 - the price direction over 7 / 30 days and a weekly slope (trend.py);
-- Hong Kong and United States prices converted to yen (overseas.py);
+- Hong Kong and United States prices converted to yen (overseas.py) and
+  every market ranked with a recommendation of where to sell (global_compare.py);
 - a total when several phones are sold together (bulk.py).
 
 Everything is computed from data NOVA already stores, so the AI core can
@@ -22,6 +23,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from .bulk import bulk_total
+from .global_compare import global_comparison
 from .loaders import load_daily_best, load_market_snapshots, load_market_store_snapshots
 from .matching import index_rows, match_device
 from .overseas import attach_store_rankings, best_overseas, compare_markets
@@ -78,13 +80,16 @@ def build_price_evidence(
         for capacity in match.capacities:
             rows = index[match.model][capacity]
             quotes = summarise_quotes(rows)
+            trend = summarise_trend(daily_best.get((match.model, capacity), []), today)
+            overseas = attach_store_rankings(
+                compare_markets(quotes.get("best_price"), best_overseas(market_rows, match.model, capacity), fx_rates),
+                market_store_rows, match.model, capacity, fx_rates)
             entry = {
                 "capacity": capacity,
                 "quotes": quotes,
-                "trend": summarise_trend(daily_best.get((match.model, capacity), []), today),
-                "overseas": attach_store_rankings(
-                    compare_markets(quotes.get("best_price"), best_overseas(market_rows, match.model, capacity), fx_rates),
-                    market_store_rows, match.model, capacity, fx_rates),
+                "trend": trend,
+                "overseas": overseas,
+                "global": global_comparison(quotes, overseas, trend) if overseas else None,
             }
             item["capacities"].append(entry)
             if capacity == priced_capacity:

@@ -9,6 +9,13 @@ from __future__ import annotations
 
 LABELS = {
     "ja": {
+        "global": "世界比較", "jp": "日本",
+        "advice_japan_best": "日本が一番高いので日本で売るのがおすすめ",
+        "advice_overseas_small": "{market}が {gap}{pct} 高いが、送料・手数料・為替で消える差なので日本で売るのが現実的",
+        "advice_overseas_clear": "{market}が {gap}{pct} 高い。現地で売れる人には有利だが、送料・手数料・関税・為替を差し引いて判断",
+        "advice_japan_only": "海外の比較できる価格がないため日本の価格で判断",
+        "advice_falling": "日本の価格は下落中なので早めの売却がおすすめ",
+        "advice_rising": "日本の価格は上昇中",
         "best": "最高", "runner_up": "2位", "stores": "{n}店", "retail": "定価比", "week": "7日前比",
         "month": "30日前比", "slope": "傾き {value}/週", "up": "上昇", "down": "下落", "flat": "横ばい",
         "hk": "香港", "us": "アメリカ", "vs_japan": "日本比", "total": "合計", "phones": "{n}台",
@@ -23,6 +30,13 @@ LABELS = {
         "not_shown": "ほかに {models} もありますが、一度に扱うのは 4 機種までです",
     },
     "zh": {
+        "global": "全球比较", "jp": "日本",
+        "advice_japan_best": "日本最高，建议在日本卖",
+        "advice_overseas_small": "{market}高 {gap}{pct}，但这点差价会被运费、手续费和汇率吃掉，在日本卖更实际",
+        "advice_overseas_clear": "{market}高 {gap}{pct}。人在当地能卖的话更划算，但要扣掉运费、手续费、关税和汇率再判断",
+        "advice_japan_only": "没有可比较的海外价格，按日本价格判断",
+        "advice_falling": "日本价格在下跌，建议早点卖",
+        "advice_rising": "日本价格在上涨",
         "best": "最高", "runner_up": "第2", "stores": "{n}家店", "retail": "比官网价", "week": "比7天前",
         "month": "比30天前", "slope": "每周 {value}", "up": "上涨", "down": "下跌", "flat": "持平",
         "hk": "香港", "us": "美国", "vs_japan": "比日本", "total": "合计", "phones": "{n}台",
@@ -37,6 +51,13 @@ LABELS = {
         "not_shown": "还有 {models}，一次最多处理 4 个机型",
     },
     "en": {
+        "global": "global comparison", "jp": "Japan",
+        "advice_japan_best": "Japan pays the most, so selling in Japan is recommended",
+        "advice_overseas_small": "{market} pays {gap}{pct} more, but shipping, fees and the exchange rate eat a gap that small, so Japan is the practical choice",
+        "advice_overseas_clear": "{market} pays {gap}{pct} more; worth it for someone who can sell there, after shipping, fees, customs and the exchange rate",
+        "advice_japan_only": "no comparable overseas price, so judge by the Japanese price",
+        "advice_falling": "Japanese prices are falling, so selling soon is recommended",
+        "advice_rising": "Japanese prices are rising",
         "best": "best", "runner_up": "2nd", "stores": "{n} stores", "retail": "vs Apple price", "week": "vs 7 days ago",
         "month": "vs 30 days ago", "slope": "slope {value}/week", "up": "rising", "down": "falling", "flat": "flat",
         "hk": "Hong Kong", "us": "United States", "vs_japan": "vs Japan", "total": "total", "phones": "{n} phones",
@@ -107,6 +128,30 @@ def _quote_line(model: str, entry: dict, text: dict) -> str:
     return " / ".join([parts[0] + " " + parts[1]] + parts[2:]) if len(parts) > 1 else parts[0]
 
 
+def advice_text(comparison: dict, text: dict) -> str:
+    """The recommendation of a global comparison as one sentence (plus the Japanese trend when it matters)."""
+    market = comparison.get("best_overseas_market")
+    sentence = text[f"advice_{comparison['advice']}"].format(
+        market=text.get(market, market or ""), gap=yen(comparison.get("overseas_gap")),
+        pct=percent(comparison.get("overseas_gap_percent")))
+    direction = comparison.get("japan_direction")
+    if direction == "down" and comparison["advice"] != "overseas_clear":
+        sentence += " / " + text["advice_falling"]
+    elif direction == "up":
+        sentence += " / " + text["advice_rising"]
+    return sentence
+
+
+def _global_line(model: str, entry: dict, text: dict) -> str:
+    comparison = entry["global"]
+    ranked = []
+    for market in comparison["ranking"]:
+        name = text.get(market["market"], market["market"])
+        store = f" ({market['store']})" if market.get("store") else ""
+        ranked.append(f"{market['rank']}) {name} {yen(market['price_jpy'])}{store}")
+    return f"{model} {capacity_label(entry['capacity'])} {text['global']}: " + " ".join(ranked) + " → " + advice_text(comparison, text)
+
+
 def render_evidence(evidence: dict, language: str = "ja") -> list[str]:
     text = LABELS.get(language, LABELS["en"])
     lines: list[str] = []
@@ -121,6 +166,8 @@ def render_evidence(evidence: dict, language: str = "ja") -> list[str]:
                                                             capacity=capacity_label(item["requested_capacity"])))
         for entry in item.get("capacities") or []:
             lines.append(_quote_line(item["model"], entry, text))
+            if entry.get("global") and evidence.get("intent") == "overseas_market":
+                lines.append(_global_line(item["model"], entry, text))
     bulk = evidence.get("bulk")
     if bulk:
         line = f"{text['total']} {yen(bulk['total'])} ({text['phones'].format(n=bulk['phones'])})"

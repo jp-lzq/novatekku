@@ -61,7 +61,7 @@ CUES: dict[str, tuple[tuple[str, float], ...]] = {
         (r"when (should|to) (i )?sell|sell now|good time|wait|price drop|drop|going (up|down)|trend|after .{0,20}(launch|release|comes out)", 3.0),
     ),
     OVERSEAS_MARKET: (
-        (r"海外|外国|国外|overseas|abroad|global|全球|世界", 2.0),
+        (r"海外|外国|国外|overseas|abroad|global|全球|世界|in the world|worldwide|internationally", 2.0),
     ),
     BULK_QUOTE: (
         (r"まとめて|合計|全部で|複数|一括", 2.5),
@@ -154,6 +154,11 @@ def classify(text: str, devices: list[DeviceMention], follow_up: bool = False) -
                 scores[intent] += weight
                 cues.setdefault(intent, []).append(match.group(0))
                 break  # one hit per pattern is enough; repeating a word should not win
+
+    # "世界で一番高いのは？" / "全球哪里最贵": the place asked for is a market, not a store
+    world_words = bool(scores[OVERSEAS_MARKET])
+    if world_words and (devices or scores[STORE_RANKING] or scores[PRICE_QUOTE]):
+        scores[OVERSEAS_MARKET] += 3.0 + (scores[STORE_RANKING] if scores[STORE_RANKING] else 0.0)
 
     markets = _markets(text)
     overseas = [market for market in markets if market != "jp"]
