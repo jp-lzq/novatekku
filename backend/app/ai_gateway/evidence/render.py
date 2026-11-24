@@ -9,6 +9,9 @@ from __future__ import annotations
 
 LABELS = {
     "ja": {
+        "color_best": "{color}: 最高 {price} ({store})", "color_shared": "全色同額の店",
+        "color_behind": "最高色の{top}より {gap}", "color_top": "{n}色中1位",
+        "color_unquoted": "{color}: この色の価格はありません", "color_range": "色別: {items}",
         "global": "世界比較", "jp": "日本",
         "advice_japan_best": "日本が一番高いので日本で売るのがおすすめ",
         "advice_overseas_small": "{market}が {gap}{pct} 高いが、送料・手数料・為替で消える差なので日本で売るのが現実的",
@@ -30,6 +33,9 @@ LABELS = {
         "not_shown": "ほかに {models} もありますが、一度に扱うのは 4 機種までです",
     },
     "zh": {
+        "color_best": "{color}：最高 {price}（{store}）", "color_shared": "所有颜色同价的店",
+        "color_behind": "比最高的{top}低 {gap}", "color_top": "{n}种颜色里第1",
+        "color_unquoted": "{color}：这个颜色没有报价", "color_range": "分颜色：{items}",
         "global": "全球比较", "jp": "日本",
         "advice_japan_best": "日本最高，建议在日本卖",
         "advice_overseas_small": "{market}高 {gap}{pct}，但这点差价会被运费、手续费和汇率吃掉，在日本卖更实际",
@@ -51,6 +57,9 @@ LABELS = {
         "not_shown": "还有 {models}，一次最多处理 4 个机型",
     },
     "en": {
+        "color_best": "{color}: best {price} ({store})", "color_shared": "a store paying the same for every colour",
+        "color_behind": "{gap} vs the top colour {top}", "color_top": "top of {n} colours",
+        "color_unquoted": "{color}: no price for this colour", "color_range": "by colour: {items}",
         "global": "global comparison", "jp": "Japan",
         "advice_japan_best": "Japan pays the most, so selling in Japan is recommended",
         "advice_overseas_small": "{market} pays {gap}{pct} more, but shipping, fees and the exchange rate eat a gap that small, so Japan is the practical choice",
@@ -128,6 +137,33 @@ def _quote_line(model: str, entry: dict, text: dict) -> str:
     return " / ".join([parts[0] + " " + parts[1]] + parts[2:]) if len(parts) > 1 else parts[0]
 
 
+def _color_name(names: dict | None, code: str | None, language: str) -> str:
+    return (names or {}).get(language) or code or ""
+
+
+def color_line(colors: dict, text: dict, language: str) -> str | None:
+    """The asked colour's best price and its gap to the top colour, or the colour range when none was asked."""
+    requested = colors.get("requested")
+    if requested:
+        name = _color_name(requested.get("names"), requested["code"], language)
+        if not requested.get("quoted"):
+            return text["color_unquoted"].format(color=name)
+        line = text["color_best"].format(color=name, price=yen(requested["best_price"]), store=requested["best_store"])
+        if requested.get("source") == "all_colors":
+            line += f" [{text['color_shared']}]"
+        if requested.get("behind_top"):
+            top = _color_name(requested.get("top_color_names"), requested.get("top_color"), language)
+            line += " / " + text["color_behind"].format(top=top, gap=yen(-requested["behind_top"], True))
+        elif requested.get("rank") == 1 and requested.get("color_count", 0) > 1:
+            line += " / " + text["color_top"].format(n=requested["color_count"])
+        return line
+    if colors.get("color_spread"):
+        ranked = colors["colors"]
+        items = [f"{_color_name(color['names'], color['code'], language)} {yen(color['best_price'])}" for color in ranked[:6]]
+        return text["color_range"].format(items=", ".join(items))
+    return None
+
+
 def advice_text(comparison: dict, text: dict) -> str:
     """The recommendation of a global comparison as one sentence (plus the Japanese trend when it matters)."""
     market = comparison.get("best_overseas_market")
@@ -154,6 +190,7 @@ def _global_line(model: str, entry: dict, text: dict) -> str:
 
 def render_evidence(evidence: dict, language: str = "ja") -> list[str]:
     text = LABELS.get(language, LABELS["en"])
+    language = language if language in LABELS else "en"
     lines: list[str] = []
     for item in evidence.get("items") or []:
         notes = item.get("notes") or []
@@ -166,6 +203,10 @@ def render_evidence(evidence: dict, language: str = "ja") -> list[str]:
                                                             capacity=capacity_label(item["requested_capacity"])))
         for entry in item.get("capacities") or []:
             lines.append(_quote_line(item["model"], entry, text))
+            if entry.get("colors") and len(item.get("capacities") or []) == 1:
+                line = color_line(entry["colors"], text, language)
+                if line:
+                    lines.append(line)
             if entry.get("global") and evidence.get("intent") == "overseas_market":
                 lines.append(_global_line(item["model"], entry, text))
     bulk = evidence.get("bulk")

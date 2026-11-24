@@ -51,6 +51,15 @@ def known_values(evidence: dict) -> dict[tuple[str, int], list[str]]:
                 for store in market.get("stores") or []:
                     _add(values, store.get("currency") or market.get("currency") or "", store.get("price"), f"{label} {store.get('store')}")
                     _add(values, "JPY", store.get("price_jpy"), f"{label} {store.get('store')} in yen")
+            colors = entry.get("colors") or {}
+            for color in colors.get("colors") or []:
+                _add(values, "JPY", color.get("best_price"), f"{name} {color.get('code')} ({color.get('best_store')})")
+                _add(values, "JPY", color.get("behind_top"), f"{name} {color.get('code')} behind the top colour")
+            _add(values, "JPY", (colors.get("all_colors") or {}).get("best_price"), f"{name} every colour")
+            _add(values, "JPY", colors.get("color_spread"), f"{name} colour spread")
+            requested = colors.get("requested") or {}
+            _add(values, "JPY", requested.get("best_price"), f"{name} {requested.get('code')} best")
+            _add(values, "JPY", requested.get("behind_top"), f"{name} {requested.get('code')} behind the top colour")
             comparison = entry.get("global") or {}
             _add(values, "JPY", comparison.get("overseas_gap"), f"{name} best overseas vs Japan")
             _add(values, "JPY", comparison.get("spread"), f"{name} global spread")
@@ -88,6 +97,12 @@ def store_prices(evidence: dict, price_rows: list[dict] | None = None) -> dict[s
             for rank in (entry.get("quotes") or {}).get("ranking") or []:
                 if rank.get("store") and rank.get("price"):
                     prices[rank["store"]].add(int(rank["price"]))
+            # a store's colour price differs from its best price ("シルバーなら 172,000円")
+            colors = entry.get("colors") or {}
+            quotes = list(colors.get("colors") or []) + [colors.get("all_colors") or {}, colors.get("requested") or {}]
+            for quote in quotes:
+                if quote.get("best_store") and quote.get("best_price"):
+                    prices[quote["best_store"]].add(int(quote["best_price"]))
     for row in price_rows or []:
         if (row.get("model"), str(row.get("capacity"))) in asked and row.get("store") and row.get("price"):
             prices[row["store"]].add(int(row["price"]))

@@ -163,3 +163,42 @@ def load_market_store_snapshots(db: Session, models: set[str]) -> list[dict]:
                                 "capacity": normalise_capacity(row.capacity), "color_code": row.color_code,
                                 "price": int(row.price), "currency": row.currency})
     return list(latest.values())
+
+
+COLOR_ROWS_CACHE = TTLCache(ttl_seconds=60, max_entries=4)  # the working set covers every phone; rebuilt once a minute
+
+
+def color_rows_from_assessment(data: dict, accepted: set[tuple[int, int]]) -> list[dict]:
+    """Flatten the assessment working set into rows {model, capacity, color_code, names, store, price, exact}."""
+    stores = {store["id"]: store["name"] for store in data.get("stores") or []}
+    variants = {}
+    for product in data.get("products") or []:
+        for color in product.get("colors") or []:
+            variants[color["variant_id"]] = (product, color)
+    rows = []
+    for offer in data.get("offers") or []:
+        if (offer["product_id"], offer["store_id"]) not in accepted or offer["variant_id"] not in variants:
+            continue
+        product, color = variants[offer["variant_id"]]
+        rows.append({
+            "model": product["model"], "capacity": normalise_capacity(product["capacity"]),
+            "color_code": color["code"], "color_name_ja": color["name_ja"], "color_name_en": color["name_en"],
+            "color_name_zh": color["name_zh"], "store": stores.get(offer["store_id"]), "price": int(offer["price"]),
+            "exact": bool(offer["exact"]),
+        })
+    return rows
+
+
+def load_color_rows(db: Session, models: set[str]) -> list[dict]:
+    """Current per-colour store quotes (same accepted-store rule as the colour price page) for the given models."""
+    if not models:
+        return []
+    from app.web.routers.prices import _accepted_price_keys, _assessment_data  # late: the router imports the gateway
+
+    def build() -> list[dict]:
+        data = _assessment_data(db)
+        accepted = {(product_id, store_id) for product_id, store_id, _price
+                    in _accepted_price_keys(db, [product["id"] for product in data["products"]])}
+        return color_rows_from_assessment(data, accepted)
+
+    return [row for row in COLOR_ROWS_CACHE.get_or_set("all", build) if row["model"] in models]

@@ -200,6 +200,9 @@ def _quantity_in(text: str) -> tuple[int, str] | None:
     return value, match.group(0).strip()
 
 
+LEADING_COLOR_CHARS = 40  # how far before the first model a colour may be written
+
+
 def extract_devices(message: str) -> list[DeviceMention]:
     """Every phone mentioned in the message, in the order written."""
     text = normalize_query(message)
@@ -241,6 +244,10 @@ def extract_devices(message: str) -> list[DeviceMention]:
         elif (found := _quantity_in(segment)):
             device.quantity, device.evidence["quantity"] = found
         color = infer_color_code(name, segment) if device.known else None
+        if not color and device.known and index == 0:
+            # English puts the colour first ("a cosmic orange iPhone 17 Pro"); only the first phone has
+            # unclaimed text before it, later ones would take the colour written after the previous phone
+            color = infer_color_code(name, text[max(0, start - LEADING_COLOR_CHARS):start])
         if color:
             device.color = color
             device.evidence["color"] = color

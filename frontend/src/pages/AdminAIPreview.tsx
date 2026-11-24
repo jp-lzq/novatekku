@@ -70,7 +70,7 @@ const CHECK_LABELS: Record<AnswerCheck['status'], { text: string; tone: string }
   no_amounts: { text: '回答に金額がありません', tone: 'text-slate-600 bg-slate-50 border-slate-200' },
 }
 
-const EXAMPLES = ['17プロマ 256 どこが一番高い？', '17 pro と 16 pro max どっちが高く売れる？', '16e×3 と 17 256×2 の合計', 'iPhone Duo 1TB 香港ならいくら？', '17 pro 256 世界で一番高く売れるのはどこ？']
+const EXAMPLES = ['17プロマ 256 どこが一番高い？', '17 pro と 16 pro max どっちが高く売れる？', '16e×3 と 17 256×2 の合計', 'iPhone Duo 1TB 香港ならいくら？', '17 pro 256 世界で一番高く売れるのはどこ？', '17 pro 256 シルバー いくら？']
 
 function DeviceCard({ device }: { device: Device }) {
   const details = [
