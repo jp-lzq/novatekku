@@ -182,3 +182,32 @@ def test_render_names_the_best_overseas_store():
     text = "\n".join(render_evidence(result, "ja"))
     assert "$1,500 (Buyer A)" in text
     assert "HK$10,800 =" in text and "HK$10,800 (" not in text
+
+
+def test_preview_returns_every_block_the_admin_cards_show(app, monkeypatch):
+    """The admin preview page draws cards from these keys (frontend/src/components/admin/EvidenceCards.tsx)."""
+    app.dependency_overrides[require_admin] = lambda: object()
+    monkeypatch.setattr(ai_router, "build_price_context", lambda db: ROWS)
+    monkeypatch.setattr(ai_router, "_fx_rates", lambda: RATES)
+    body = TestClient(app).get("/api/v1/ai/preview", params={"message": "17 pro 256 いくら"}).json()
+    evidence = body["price_evidence"]
+    assert {"has_prices", "fx_updated", "items", "bulk"} <= set(evidence)
+    item = evidence["items"][0]
+    assert {"model", "requested_capacity", "color", "quantity", "notes", "capacities"} <= set(item)
+    entry = item["capacities"][0]
+    assert {"capacity", "quotes", "trend", "overseas", "global", "colors"} <= set(entry)
+    assert {"store_count", "best_price", "best_store", "ranking", "median_price", "spread"} <= set(entry["quotes"])
+    assert entry["quotes"]["ranking"][0] == {"store": "森森買取", "price": 208000}
+    assert "days_of_data" in entry["trend"] and "direction" in entry["trend"]
+    assert entry["overseas"] == [] and entry["global"] is None and entry["colors"] is None  # empty database
+    assert body["lines"][0].startswith("iPhone 17 Pro 256GB:")
+
+
+def test_preview_bulk_block(app, monkeypatch):
+    app.dependency_overrides[require_admin] = lambda: object()
+    monkeypatch.setattr(ai_router, "build_price_context", lambda db: ROWS)
+    monkeypatch.setattr(ai_router, "_fx_rates", lambda: RATES)
+    bulk = TestClient(app).get("/api/v1/ai/preview", params={"message": "17 pro 256 x2 と 16e 128 合計"}).json()["price_evidence"]["bulk"]
+    assert {"total", "phones", "lines"} <= set(bulk)
+    assert bulk["total"] == 208000 * 2 + 82000 and bulk["phones"] == 3
+    assert {"model", "capacity", "quantity", "store", "unit_price", "subtotal"} <= set(bulk["lines"][0])
