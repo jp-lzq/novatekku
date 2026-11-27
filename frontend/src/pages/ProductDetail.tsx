@@ -6,6 +6,7 @@ import { usePriceCatalog, type CatalogProduct as Product } from '../lib/priceCat
 import { useI18n } from '../i18n'
 import ProfessionalKLineChart from '../components/ProfessionalKLineChart'
 import { LightPage, PageHeader, lightPanelClass } from '../components/PageChrome'
+import { WhereToSell } from '../global/whereToSell'
 
 interface Store {
   id: number
@@ -103,6 +104,9 @@ export default function ProductDetail() {
                 </div>
               </div>
             </section>
+
+            {/* Japan vs Hong Kong vs the US for this model and capacity; hidden when there is nothing to compare */}
+            <WhereToSell model={product.model} capacity={product.capacity} tone="light" className="mb-4 sm:mb-6" />
 
             <section className={`mb-4 overflow-hidden sm:mb-6 ${lightPanelClass}`}>
               <div className="border-b border-slate-100 px-5 py-4 sm:px-7 sm:py-5">

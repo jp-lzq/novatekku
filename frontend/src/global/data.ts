@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiGet } from '../lib/api'
+import type { Currency } from './currency'
 import { compareModels, japanBoards, overseasBoards, type ColorName, type ColorPriceRow, type MarketBoard, type MarketId, type MarketPriceResponse } from './markets'
 
 export type ModelBoards = { model: string } & Partial<Record<MarketId, MarketBoard>>
@@ -58,5 +59,58 @@ export function useMarketStores(market: 'hk' | 'us', enabled: boolean) {
     queryFn: () => apiGet<MarketStoreResponse>('/api/v1/prices/market-stores', { params: { market } }),
     staleTime: 60_000,
     enabled,
+  })
+}
+
+export type SellAdvice = 'japan_best' | 'overseas_small' | 'overseas_clear' | 'japan_only'
+
+export interface WhereToSellStore {
+  store: string
+  price: number
+  currency: Currency
+  price_jpy: number | null
+}
+
+export interface WhereToSellMarket {
+  market: MarketId
+  price: number
+  currency: Currency
+  price_jpy: number
+  store: string | null
+  buyers: number | null
+  rank: number
+  behind_top: number
+  stores: WhereToSellStore[]
+}
+
+export interface WhereToSellResponse {
+  model: string
+  capacity: string | null
+  capacities: string[]
+  markets: WhereToSellMarket[]
+  advice: SellAdvice | null
+  best_market: MarketId | null
+  best_overseas_market: 'hk' | 'us' | null
+  overseas_gap: number | null
+  overseas_gap_percent: number | null
+  small_gap_percent: number
+  japan_direction: 'up' | 'down' | 'flat' | null
+  japan_change_7d: { change: number; percent: number; from_date: string } | null
+  fx: { rates: Partial<Record<'HKD' | 'USD', number | null>>; updated_at: string | null }
+  updated_at: Record<MarketId, string | null>
+}
+
+/**
+ * Where one phone sells best: Japan, Hong Kong and the US ranked in yen with a recommendation.
+ * Without a capacity the server picks the smallest quoted one; an unknown model is an error (no card).
+ */
+export function useWhereToSell(model: string | undefined, capacity?: string | null) {
+  return useQuery<WhereToSellResponse>({
+    queryKey: ['prices', 'where-to-sell', model, capacity ?? null],
+    queryFn: () => apiGet<WhereToSellResponse>('/api/v1/prices/where-to-sell', { params: { model, ...(capacity ? { capacity } : {}) } }),
+    staleTime: 60_000,
+    enabled: Boolean(model),
+    retry: false,
+    placeholderData: (previous) => (previous?.model === model ? previous : undefined), // keep the card while another capacity loads
   })
 }
