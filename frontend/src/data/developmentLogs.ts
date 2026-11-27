@@ -206,6 +206,20 @@ export const DEVELOPMENT_LOGS: DevelopmentLogEntry[] = [
   },
   {
     period: '2026.11',
+    phase: { en: 'Comparison', zh: '比较功能', ja: '比較機能' },
+    title: {
+      en: 'Where to sell: Japan, Hong Kong and the US, by colour and by store',
+      zh: '哪里卖最划算：日本、香港、美国，按颜色和按店比较',
+      ja: 'どこで売るか：日本・香港・アメリカ、カラー別・店舗別の比較',
+    },
+    content: {
+      en: 'Product and global pages show which market pays the most in yen with a plain recommendation. NOVA AI names the US buyers behind overseas prices, answers by colour, compares the stores you name, and tells you whether a price you hope for is reached. Overseas prices are checked for outliers before they are stored.',
+      zh: '商品页和全球页按日元显示哪个市场收得最高，并给出简单建议。NOVA AI 会说出海外价格是哪家美国店给的，能按颜色回答，能比较你指定的店，还能告诉你想要的价格能不能卖到。海外价格入库前会先剔除异常值。',
+      ja: '商品ページとグローバルページで、どの市場が円換算で一番高いかとおすすめを表示。NOVA AI は海外価格の買取店名、カラー別の価格、指定した店舗どうしの比較、希望価格に届くかどうかに答えます。海外価格は保存前に異常値を確認しています。',
+    },
+  },
+  {
+    period: '2026.11',
     phase: { en: 'Security', zh: '安全', ja: 'セキュリティ' },
     title: {
       en: 'Hardened the servers and the collection monitoring',

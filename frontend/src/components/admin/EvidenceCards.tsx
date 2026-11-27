@@ -142,11 +142,43 @@ export interface Bulk {
   single_store?: { store: string; total: number; difference?: number } | null
 }
 
+export interface StoreCompareLine {
+  model: string
+  capacity: string
+  stores: { store: string; price: number; rank: number; behind_best: number }[]
+  unquoted: string[]
+  winner: string | null
+  tie: boolean
+  gap: number | null
+  best_store: string | null
+  best_price: number | null
+  store_count: number
+  best_is_asked: boolean
+  gap_to_best: number | null
+}
+
+export interface TargetLine {
+  model: string
+  capacity: string
+  target: number
+  store_count: number
+  reached: boolean
+  reached_count: number
+  stores: { store: string; price: number; over_target: number }[]
+  best_price: number | null
+  best_store: string | null
+  best_vs_target: number | null
+  shortfall: number | null
+  direction: 'up' | 'down' | 'flat' | null
+}
+
 export interface PriceEvidence {
   has_prices?: boolean
   fx_updated?: string | null
   items?: EvidenceItem[]
   bulk?: Bulk | null
+  store_compare?: { stores: string[]; items: StoreCompareLine[] } | null
+  target_price?: { target: number; items: TargetLine[] } | null
 }
 
 const MARKET_LABELS: Record<string, string> = { jp: '日本', hk: '香港', us: 'アメリカ' }
@@ -371,11 +403,65 @@ function BulkCard({ bulk }: { bulk: Bulk }) {
   )
 }
 
+function StoreCompareCard({ line }: { line: StoreCompareLine }) {
+  const max = line.best_price ?? line.stores[0]?.price ?? 0
+  return (
+    <article className="rounded-xl border border-violet-200 bg-violet-50/40 p-3">
+      <p className="font-semibold">店舗比較：{line.model} {capacityLabel(line.capacity)}</p>
+      <ul className="mt-2 space-y-1.5">
+        {line.stores.map((store) => (
+          <li key={store.store} className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)_6rem] items-center gap-2 text-sm">
+            <span className={`truncate ${line.winner === store.store ? 'font-semibold text-violet-700' : ''}`}>{store.store}</span>
+            <div className="min-w-0">
+              <p className="truncate text-xs text-slate-500">{store.rank}位／{line.store_count}店{store.behind_best > 0 && ` ・最高値より ${yen(-store.behind_best, true)}`}</p>
+              <Bar value={store.price} max={max} highlight={line.winner === store.store} />
+            </div>
+            <span className="text-right font-medium tabular-nums">{yen(store.price)}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-slate-600">
+        {line.tie ? '同額です' : line.winner ? `${line.winner} が ${yen(line.gap)} 高い` : '比較できる店が 1 店だけです'}
+        {!line.best_is_asked && line.best_store && ` ／最高値は ${line.best_store} ${yen(line.best_price)}`}
+      </p>
+      {line.unquoted.length > 0 && <p className="mt-1 text-xs text-amber-700">価格なし：{line.unquoted.join('、')}</p>}
+    </article>
+  )
+}
+
+function TargetCard({ line }: { line: TargetLine }) {
+  return (
+    <article className={`rounded-xl border p-3 ${line.reached ? 'border-emerald-200 bg-emerald-50/40' : 'border-rose-200 bg-rose-50/40'}`}>
+      <p className="flex items-center gap-1.5 font-semibold">
+        目標 {yen(line.target)}：{line.model} {capacityLabel(line.capacity)}
+        <DirectionIcon direction={line.direction} />
+      </p>
+      <p className="mt-1 text-sm">
+        {line.reached
+          ? `${line.store_count}店中 ${line.reached_count}店が達成（最高 ${yen(line.best_price)}、目標より ${yen(line.best_vs_target, true)}）`
+          : `未達：最高 ${yen(line.best_price)}（${line.best_store ?? '-'}）で ${yen(line.shortfall)} 足りません`}
+      </p>
+      {line.stores.length > 0 && (
+        <ul className="mt-2 space-y-1 text-sm">
+          {line.stores.map((store) => (
+            <li key={store.store} className="flex justify-between gap-2">
+              <span className="truncate">{store.store}</span>
+              <span className="tabular-nums">{yen(store.price)} <span className="text-xs text-emerald-700">{yen(store.over_target, true)}</span></span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  )
+}
+
 export default function EvidenceCards({ evidence }: { evidence: PriceEvidence }) {
   const items = evidence.items ?? []
   if (items.length === 0 && !evidence.bulk) return null
   return (
     <div className="space-y-3">
+      {(evidence.target_price?.items ?? []).map((line) => <TargetCard key={`target-${line.model}-${line.capacity}`} line={line} />)}
+      {(evidence.store_compare?.items ?? []).map((line) => <StoreCompareCard key={`stores-${line.model}-${line.capacity}`} line={line} />)}
       {items.map((item, index) => (
         <div key={`${item.model}-${index}`} className="space-y-2">
           {(item.notes ?? []).length > 0 && (
