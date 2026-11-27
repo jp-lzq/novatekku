@@ -7,6 +7,7 @@ import { useGlobalBoards, useMarketStores, type ModelBoards } from '../global/da
 import { MARKETS, basePrice, capacityLabel, generationOf, modelSlug, japanTime, parseTab, tabCurrency, type MarketId, type Tab } from '../global/markets'
 import { globalText } from '../global/text'
 import { GlobalShell, Money, PhoneArt } from '../global/ui'
+import { WhereToSell } from '../global/whereToSell'
 
 const MARKET_IDS: MarketId[] = ['jp', 'hk', 'us']
 
@@ -99,6 +100,7 @@ export default function Global() {
                 {tab === 'global'
                   ? <GlobalBoard entry={entry} currency={currency} rates={rates} />
                   : <MarketTable board={entry[tab]!} currency={currency} rates={rates} />}
+                {tab === 'global' && <WhereToSell model={entry.model} />}
                 {tab === 'us' && <StoreRanking model={entry.model} data={usStores.data} currency={currency} rates={rates} />}
               </section>
             ))}
