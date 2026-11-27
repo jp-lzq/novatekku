@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from .entities import DeviceMention, capacity_without_model, extract_devices
 from .intents import IntentResult, classify
 from .normalize import normalize_query
+from .target import target_price
 
 __all__ = ["Understanding", "understand", "DeviceMention", "IntentResult"]
 
@@ -30,6 +31,7 @@ class Understanding:
     devices: list[DeviceMention] = field(default_factory=list)
     follow_up_capacity: str | None = None  # "那 512 呢？": a capacity without a model
     unknown_models: list[str] = field(default_factory=list)  # e.g. "iPhone 12" (not in NOVA's catalogue)
+    target_price: int | None = None  # yen the user hopes to get ("20万円以上で売れる？" -> 200000)
 
     def to_dict(self) -> dict:
         return {
@@ -39,6 +41,7 @@ class Understanding:
             "devices": [device.to_dict() for device in self.devices],
             "follow_up_capacity": self.follow_up_capacity,
             "unknown_models": self.unknown_models,
+            "target_price": self.target_price,
         }
 
 
@@ -46,10 +49,12 @@ def understand(message: str) -> Understanding:
     text = normalize_query(message)
     devices = extract_devices(message)
     follow_up_capacity = capacity_without_model(message)
+    target = target_price(message)
     return Understanding(
         text=text,
-        intent=classify(text, devices, follow_up=follow_up_capacity is not None),
+        intent=classify(text, devices, follow_up=follow_up_capacity is not None, target=target),
         devices=devices,
         follow_up_capacity=follow_up_capacity,
         unknown_models=[device.model for device in devices if not device.known],
+        target_price=target,
     )

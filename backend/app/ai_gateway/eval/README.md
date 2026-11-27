@@ -16,7 +16,7 @@ python -m app.ai_gateway.eval --json   # JSON で出力
  "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["512"]}}
 ```
 
-- `expect` に書いた項目（`intent`・`models`・`capacities`・`colors`・`quantities`・`markets`）だけを採点する。
+- `expect` に書いた項目（`intent`・`models`・`capacities`・`colors`・`quantities`・`markets`・`target`）だけを採点する。`target` は「20万円以上で売れる？」の目標金額（円）。
 - まだ正しく答えられない問題は消さずに `known_gap` に理由を書いて残す。点数は隠さない。直ったら採点結果に「known gaps now answered correctly」と出るので、印を外す。
 - 誤認しやすい文（「12台」「15:00」「iPad Pro 13」「Galaxy Z Fold」など）も入れて、機種と読み違えないことを確かめる。
 
