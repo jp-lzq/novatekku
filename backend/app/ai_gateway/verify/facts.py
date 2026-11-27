@@ -4,7 +4,9 @@
 for example 208000 -> ["iPhone 17 Pro 256 best price (森森買取)"].  Differences
 (including the gap between two phones' best prices, used in comparisons) are
 stored as absolute values because answers write "1.18万円安い" without a sign.
-``store_prices`` maps a store to the prices it quotes for the phones in question.
+``store_prices`` maps a store to the prices it quotes for the phones in question
+(plus, for the stores of a store comparison or a target question, the gap
+written next to the store's name).
 """
 
 from __future__ import annotations
@@ -76,6 +78,28 @@ def known_values(evidence: dict) -> dict[tuple[str, int], list[str]]:
     for index, (name_a, price_a) in enumerate(bests):
         for name_b, price_b in bests[index + 1:]:
             _add(values, "JPY", price_a - price_b, f"{name_a} vs {name_b}")
+    for item in (evidence.get("store_compare") or {}).get("items") or []:
+        name = f"{item.get('model')} {item.get('capacity')}"
+        stores = item.get("stores") or []
+        for store in stores:
+            _add(values, "JPY", store.get("price"), f"{name} {store.get('store')}")
+            _add(values, "JPY", store.get("behind_best"), f"{name} {store.get('store')} behind the best store")
+        # "携帯空間はアキモバより 3,500円高い": every pair of asked stores
+        for index, store_a in enumerate(stores):
+            for store_b in stores[index + 1:]:
+                _add(values, "JPY", store_a["price"] - store_b["price"], f"{name} {store_a['store']} vs {store_b['store']}")
+        _add(values, "JPY", item.get("best_price"), f"{name} best price ({item.get('best_store')})")
+        _add(values, "JPY", item.get("gap_to_best"), f"{name} best store vs the asked stores")
+    target = evidence.get("target_price") or {}
+    _add(values, "JPY", target.get("target"), "target price")
+    for item in target.get("items") or []:
+        name = f"{item.get('model')} {item.get('capacity')}"
+        _add(values, "JPY", item.get("best_vs_target"), f"{name} best vs target")
+        _add(values, "JPY", item.get("shortfall"), f"{name} short of the target")
+        _add(values, "JPY", item.get("change_7d"), f"{name} change_7d")
+        for store in item.get("stores") or []:
+            _add(values, "JPY", store.get("price"), f"{name} {store.get('store')}")
+            _add(values, "JPY", store.get("over_target"), f"{name} {store.get('store')} over the target")
     bulk = evidence.get("bulk") or {}
     _add(values, "JPY", bulk.get("total"), "bulk total")
     for line in bulk.get("lines") or []:
@@ -103,6 +127,18 @@ def store_prices(evidence: dict, price_rows: list[dict] | None = None) -> dict[s
             for quote in quotes:
                 if quote.get("best_store") and quote.get("best_price"):
                     prices[quote["best_store"]].add(int(quote["best_price"]))
+    # the asked stores may rank below the top 5 ("アキモバは 8位で 160,000円"); a store's gap to the best
+    # store or to the target is also written next to its name ("アキモバは最高値より 3,500円安い")
+    for item in (evidence.get("store_compare") or {}).get("items") or []:
+        for store in item.get("stores") or []:
+            prices[store["store"]].add(int(store["price"]))
+            if store.get("behind_best"):
+                prices[store["store"]].add(int(store["behind_best"]))
+    for item in (evidence.get("target_price") or {}).get("items") or []:
+        for store in item.get("stores") or []:
+            prices[store["store"]].add(int(store["price"]))
+            if store.get("over_target"):
+                prices[store["store"]].add(int(store["over_target"]))
     for row in price_rows or []:
         if (row.get("model"), str(row.get("capacity"))) in asked and row.get("store") and row.get("price"):
             prices[row["store"]].add(int(row["price"]))

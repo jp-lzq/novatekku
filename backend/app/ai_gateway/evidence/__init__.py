@@ -9,6 +9,8 @@ this package looks them up and returns, for each model and capacity:
 - Hong Kong and United States prices converted to yen (overseas.py) and
   every market ranked with a recommendation of where to sell (global_compare.py);
 - the price of each colour and of the colour asked about (colors.py);
+- the stores named in the question side by side (store_compare.py);
+- whether the price the user hopes for is reached, and where (target_price.py);
 - a total when several phones are sold together (bulk.py).
 
 Everything is computed from data NOVA already stores, so the AI core can
@@ -31,12 +33,15 @@ from .matching import index_rows, match_device
 from .overseas import attach_store_rankings, best_overseas, compare_markets
 from .quotes import summarise_quotes
 from .render import render_evidence
+from .store_compare import compare_stores, mentioned_stores
+from .target_price import assess_target
 from .trend import summarise_trend
 
 logger = logging.getLogger(__name__)
 
 VERSION = "evidence-v1"
 MAX_DEVICES = 4
+MAX_COMPARED_CAPACITIES = 3  # store or target comparison per model when no capacity was given
 
 
 def build_price_evidence(
@@ -60,6 +65,10 @@ def build_price_evidence(
     fx_rates = fx_rates or {}
     all_devices = understanding.get("devices") or []
     devices = all_devices[:MAX_DEVICES]
+    asked_stores = mentioned_stores(understanding.get("text"), {row.get("store") for row in price_rows})
+    target = understanding.get("target_price") if understanding.get("intent") == "target_price" else None
+    store_lines = []
+    target_lines = []
 
     items = []
     bulk_lines = []
@@ -97,6 +106,13 @@ def build_price_evidence(
                 "colors": summarise_colors(color_rows, match.model, capacity, device.get("color")),
             }
             item["capacities"].append(entry)
+            if quotes.get("best_price") and len(item["capacities"]) <= MAX_COMPARED_CAPACITIES:
+                if asked_stores:
+                    store_lines.append({"model": match.model, "capacity": capacity, **compare_stores(rows, asked_stores)})
+                if target:
+                    ranking_all = summarise_quotes(rows, top=len(rows)).get("ranking", [])
+                    target_lines.append({"model": match.model, "capacity": capacity,
+                                         **assess_target(ranking_all, target, trend)})
             if capacity == priced_capacity:
                 bulk_lines.append({
                     "model": match.model, "capacity": capacity, "quantity": item["quantity"],
@@ -114,6 +130,8 @@ def build_price_evidence(
         "fx_updated": fx_updated,
         "follow_up_capacity": understanding.get("follow_up_capacity"),
         "has_prices": any(entry["quotes"].get("best_price") for item in items for entry in item["capacities"]),
+        "store_compare": {"stores": asked_stores, "items": store_lines} if asked_stores else None,
+        "target_price": {"target": int(target), "items": target_lines} if target else None,
     }
     result["lines"] = {language: render_evidence(result, language) for language in ("ja", "zh", "en")}
     return result

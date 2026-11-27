@@ -9,6 +9,14 @@ from __future__ import annotations
 
 LABELS = {
     "ja": {
+        "store_compare": "店舗比較", "rank_of": "{rank}位/{n}店", "rank": "{rank}位",
+        "store_wins": "{winner}が {other}より {gap} 高い", "store_tie": "同額",
+        "store_unquoted": "{store}: この機種・容量の価格はありません",
+        "store_better_elsewhere": "最高は {store} {price}（{gap} 高い）",
+        "target": "目標 {target}", "target_reached": "達成 {n}店: {stores}",
+        "target_missed": "達成店なし: 最高 {price}（{store}）、あと {gap}",
+        "target_best": "最高 {price}（{store}）目標比 {diff}", "target_more": "ほか{n}店",
+        "target_trend": "7日前比 {change} {direction}",
         "color_best": "{color}: 最高 {price} ({store})", "color_shared": "全色同額の店",
         "color_behind": "最高色の{top}より {gap}", "color_top": "{n}色中1位",
         "color_unquoted": "{color}: この色の価格はありません", "color_range": "色別: {items}",
@@ -33,6 +41,14 @@ LABELS = {
         "not_shown": "ほかに {models} もありますが、一度に扱うのは 4 機種までです",
     },
     "zh": {
+        "store_compare": "店铺比较", "rank_of": "第{rank}/{n}家", "rank": "第{rank}",
+        "store_wins": "{winner}比{other}高 {gap}", "store_tie": "同价",
+        "store_unquoted": "{store}：这个机型和容量没有报价",
+        "store_better_elsewhere": "最高的是 {store} {price}（高 {gap}）",
+        "target": "目标 {target}", "target_reached": "达到的有{n}家：{stores}",
+        "target_missed": "没有店达到：最高 {price}（{store}），还差 {gap}",
+        "target_best": "最高 {price}（{store}）比目标 {diff}", "target_more": "另有{n}家",
+        "target_trend": "比7天前 {change} {direction}",
         "color_best": "{color}：最高 {price}（{store}）", "color_shared": "所有颜色同价的店",
         "color_behind": "比最高的{top}低 {gap}", "color_top": "{n}种颜色里第1",
         "color_unquoted": "{color}：这个颜色没有报价", "color_range": "分颜色：{items}",
@@ -57,6 +73,14 @@ LABELS = {
         "not_shown": "还有 {models}，一次最多处理 4 个机型",
     },
     "en": {
+        "store_compare": "store comparison", "rank_of": "#{rank} of {n}", "rank": "#{rank}",
+        "store_wins": "{winner} pays {gap} more than {other}", "store_tie": "same price",
+        "store_unquoted": "{store}: no price for this model and capacity",
+        "store_better_elsewhere": "the best is {store} {price} ({gap} more)",
+        "target": "target {target}", "target_reached": "{n} store(s) reach it: {stores}",
+        "target_missed": "no store reaches it: best {price} ({store}), {gap} short",
+        "target_best": "best {price} ({store}) {diff} vs target", "target_more": "{n} more",
+        "target_trend": "{change} vs 7 days ago, {direction}",
         "color_best": "{color}: best {price} ({store})", "color_shared": "a store paying the same for every colour",
         "color_behind": "{gap} vs the top colour {top}", "color_top": "top of {n} colours",
         "color_unquoted": "{color}: no price for this colour", "color_range": "by colour: {items}",
@@ -188,6 +212,51 @@ def _global_line(model: str, entry: dict, text: dict) -> str:
     return f"{model} {capacity_label(entry['capacity'])} {text['global']}: " + " ".join(ranked) + " → " + advice_text(comparison, text)
 
 
+def store_compare_lines(comparison: dict, text: dict) -> list[str]:
+    """The asked stores for each phone: price, place, who pays more, and the stores without a quote."""
+    lines: list[str] = []
+    for item in comparison.get("items") or []:
+        parts = []
+        for index, store in enumerate(item["stores"]):
+            place = (text["rank_of"].format(rank=store["rank"], n=item["store_count"]) if index == 0
+                     else text["rank"].format(rank=store["rank"]))
+            parts.append(f"{store['store']} {yen(store['price'])} ({place})")
+        line = f"{item['model']} {capacity_label(item['capacity'])} {text['store_compare']}: " + " / ".join(parts or ["-"])
+        if item.get("winner"):
+            runner = item["stores"][1]
+            line += " → " + text["store_wins"].format(winner=item["winner"], other=runner["store"], gap=yen(item["gap"]))
+        elif item.get("tie"):
+            line += " → " + text["store_tie"]
+        if item.get("gap_to_best"):
+            line += " / " + text["store_better_elsewhere"].format(store=item["best_store"], price=yen(item["best_price"]),
+                                                                  gap=yen(item["gap_to_best"]))
+        lines.append(line)
+        lines += [text["store_unquoted"].format(store=store) for store in item.get("unquoted") or []]
+    return lines
+
+
+def target_lines(assessment: dict, text: dict) -> list[str]:
+    """For each phone: the stores reaching the target, or how far the best price is short of it."""
+    lines: list[str] = []
+    for item in assessment.get("items") or []:
+        head = f"{item['model']} {capacity_label(item['capacity'])} {text['target'].format(target=yen(item['target']))}: "
+        if item["reached"]:
+            stores = ", ".join(f"{store['store']} {yen(store['price'])}" for store in item["stores"])
+            if item["reached_count"] > len(item["stores"]):
+                stores += " " + text["target_more"].format(n=item["reached_count"] - len(item["stores"]))
+            body = text["target_reached"].format(n=item["reached_count"], stores=stores)
+            body += " / " + text["target_best"].format(price=yen(item["best_price"]), store=item["best_store"],
+                                                       diff=yen(item["best_vs_target"], True))
+        else:
+            body = text["target_missed"].format(price=yen(item["best_price"]), store=item["best_store"],
+                                                gap=yen(item["shortfall"]))
+        if item.get("change_7d") is not None and item.get("direction"):
+            body += " / " + text["target_trend"].format(change=yen(item["change_7d"], True),
+                                                        direction=text.get(item["direction"], ""))
+        lines.append(head + body)
+    return lines
+
+
 def render_evidence(evidence: dict, language: str = "ja") -> list[str]:
     text = LABELS.get(language, LABELS["en"])
     language = language if language in LABELS else "en"
@@ -209,6 +278,10 @@ def render_evidence(evidence: dict, language: str = "ja") -> list[str]:
                     lines.append(line)
             if entry.get("global") and evidence.get("intent") == "overseas_market":
                 lines.append(_global_line(item["model"], entry, text))
+    if evidence.get("store_compare"):
+        lines += store_compare_lines(evidence["store_compare"], text)
+    if evidence.get("target_price"):
+        lines += target_lines(evidence["target_price"], text)
     bulk = evidence.get("bulk")
     if bulk:
         line = f"{text['total']} {yen(bulk['total'])} ({text['phones'].format(n=bulk['phones'])})"

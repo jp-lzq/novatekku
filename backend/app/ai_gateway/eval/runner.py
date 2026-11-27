@@ -6,7 +6,8 @@ Each case in cases.jsonl is one JSON object:
      "history": ["…earlier user messages…"],            # optional, for follow-ups
      "expect": {"intent": "price_quote",
                 "models": ["iPhone 17 Pro Max"], "capacities": ["256"],
-                "colors": [...], "quantities": [...], "markets": [...]},
+                "colors": [...], "quantities": [...], "markets": [...],
+                "target": 200000},                                # yen the user hopes to get
      "known_gap": "why this one is still answered wrongly"}   # optional
 
 Only the fields written in "expect" are graded.  A case passes when every
@@ -24,7 +25,7 @@ from pathlib import Path
 from app.ai_gateway.context import resolve_message
 
 CASES_FILE = Path(__file__).with_name("cases.jsonl")
-FIELDS = ("intent", "models", "capacities", "colors", "quantities", "markets")
+FIELDS = ("intent", "models", "capacities", "colors", "quantities", "markets", "target")
 
 
 @dataclass
@@ -102,6 +103,7 @@ def observe(case: dict) -> dict:
         "colors": [device["color"] for device in devices],
         "quantities": [device["quantity"] for device in devices],
         "markets": [market for market in result["markets"] if market != "jp"],
+        "target": result.get("target_price"),
     }
 
 

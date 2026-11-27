@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 from .entities import DeviceMention
 from .lexicon import MARKETS
+from .target import asks_target
 
 PRICE_QUOTE = "price_quote"  # how much will a shop pay for this phone
 STORE_RANKING = "store_ranking"  # which shop pays the most
@@ -25,6 +26,7 @@ MODEL_COMPARE = "model_compare"  # which of two phones is worth more / should I 
 SELL_TIMING = "sell_timing"  # sell now or wait
 OVERSEAS_MARKET = "overseas_market"  # Hong Kong / United States prices
 BULK_QUOTE = "bulk_quote"  # several phones at once, totals
+TARGET_PRICE = "target_price"  # can I get a given amount ("20万円以上で売れる？")
 CATALOG = "catalog"  # which models / capacities exist
 RETAIL_PRICE = "retail_price"  # Apple's own price
 STORE_INFO = "store_info"  # address, opening hours, phone number of a shop
@@ -32,11 +34,12 @@ DEVICE_HELP = "device_help"  # iPhone usage: data transfer, battery, reset
 GREETING = "greeting"  # hello / thanks
 OFF_TOPIC = "off_topic"  # nothing to do with iPhones or buyback
 
-INTENTS = (PRICE_QUOTE, STORE_RANKING, MODEL_COMPARE, SELL_TIMING, OVERSEAS_MARKET, BULK_QUOTE,
+INTENTS = (PRICE_QUOTE, STORE_RANKING, MODEL_COMPARE, SELL_TIMING, OVERSEAS_MARKET, BULK_QUOTE, TARGET_PRICE,
            CATALOG, RETAIL_PRICE, STORE_INFO, DEVICE_HELP, GREETING, OFF_TOPIC)
 
 # intents that need the current price table
-PRICE_INTENTS = frozenset({PRICE_QUOTE, STORE_RANKING, MODEL_COMPARE, SELL_TIMING, OVERSEAS_MARKET, BULK_QUOTE})
+PRICE_INTENTS = frozenset({PRICE_QUOTE, STORE_RANKING, MODEL_COMPARE, SELL_TIMING, OVERSEAS_MARKET, BULK_QUOTE,
+                           TARGET_PRICE})
 
 CUES: dict[str, tuple[tuple[str, float], ...]] = {
     PRICE_QUOTE: (
@@ -49,6 +52,10 @@ CUES: dict[str, tuple[tuple[str, float], ...]] = {
         (r"どこ(が|で|の店)|どの(店|お店|店舗)|一番高|最高値|高く売れる|おすすめの店", 3.0),
         (r"哪家|哪个店|哪間|哪里卖|最高价|卖得最贵|最贵|推荐.*店", 3.0),
         (r"which (store|shop)|where (can|should|to) i sell|best (store|shop|price)|highest", 3.0),
+        # "森森買取とアキモバ、どっちが高く買い取る？" / "携帯空間和アキモバ哪家收得高" / "which pays more, X or Y"
+        (r"(どっち|どちら)の(店|お店)|高く買い?取|買取額が高い", 3.0),
+        (r"收得(高|贵|多)|收的(高|贵|多)|给得(高|多)|出价(高|更高)", 3.0),
+        (r"\bpays? (the )?more\b|\bwho pays\b|\boffers? more\b|which (one )?pays", 3.0),
     ),
     MODEL_COMPARE: (
         (r"比較|比べ|どっち|どちら|違い|vs|の差|差は|差額|価格差", 2.5),
@@ -140,11 +147,13 @@ def _markets(text: str) -> list[str]:
     return found
 
 
-def classify(text: str, devices: list[DeviceMention], follow_up: bool = False) -> IntentResult:
+def classify(text: str, devices: list[DeviceMention], follow_up: bool = False,
+             target: int | None = None) -> IntentResult:
     """``text`` must already be normalised with normalize_query().
 
     ``follow_up``: the message only names a capacity ("那 512 呢？"), so it
     continues the previous price question.
+    ``target``: a money amount written in the message (see target.py).
     """
     scores = {name: 0.0 for name in INTENTS}
     cues: dict[str, list[str]] = {}
@@ -171,6 +180,13 @@ def classify(text: str, devices: list[DeviceMention], follow_up: bool = False) -
         scores[MODEL_COMPARE] += 2.5 if scores[MODEL_COMPARE] else 0.5
         if any(device.quantity > 1 for device in devices):
             scores[BULK_QUOTE] += 2.0
+    if scores[MODEL_COMPARE] and len(devices) == 1 and not devices[0].color and not overseas \
+            and len(set(re.findall(r"(?<!\d)(?:64|128|256|512|1024|2048)(?!\d)|[12]tb", text))) <= 1:
+        # one phone, one capacity and "どっちが高い": the choice is between stores
+        # ("森森買取とアキモバ、17 Pro 256 はどっちが高い？"); "256 と 512 どっち" still compares capacities
+        scores[STORE_RANKING] += scores[MODEL_COMPARE]
+        cues.setdefault(STORE_RANKING, []).extend(cues.pop(MODEL_COMPARE, []))
+        scores[MODEL_COMPARE] = 0.0
     if any(device.quantity > 1 for device in devices):
         scores[BULK_QUOTE] += 2.5
         cues.setdefault(BULK_QUOTE, []).extend(
@@ -181,6 +197,11 @@ def classify(text: str, devices: list[DeviceMention], follow_up: bool = False) -
         scores[PRICE_QUOTE] += 1.5
         if scores[DEVICE_HELP] and not scores[PRICE_QUOTE] > 1.5:
             scores[DEVICE_HELP] += 0.5
+    target_cues = asks_target(text) if target else []
+    if target_cues:
+        # "20万円以上で売れる？": an amount plus "can it reach" asks about that amount, even beside "高く売れる"
+        scores[TARGET_PRICE] += 5.0
+        cues.setdefault(TARGET_PRICE, []).extend(target_cues)
     if follow_up:
         scores[PRICE_QUOTE] += 2.0
         cues.setdefault(PRICE_QUOTE, []).append("follow-up capacity")
@@ -205,7 +226,8 @@ def classify(text: str, devices: list[DeviceMention], follow_up: bool = False) -
     if best in PRICE_INTENTS and scores[DEVICE_HELP] and not devices:
         # "バッテリーの最大容量はどこで見られる？": "どこで" looks like a store question, but it is about the phone
         return IntentResult(intent=DEVICE_HELP, confidence=scores[DEVICE_HELP] / total, scores=scores, cues=cues, markets=markets)
-    if best in PRICE_INTENTS and not devices and not follow_up and not overseas and not _DOMAIN_RE.search(text):
+    if best in PRICE_INTENTS and not devices and not follow_up and not overseas and not target_cues \
+            and not _DOMAIN_RE.search(text):
         # "ビットコインの価格は？": a price question, but not about phones
         cues.setdefault(OFF_TOPIC, []).append("no phone or shop words")
         return IntentResult(intent=OFF_TOPIC, confidence=0.5, scores=scores, cues=cues, markets=markets)

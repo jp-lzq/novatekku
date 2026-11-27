@@ -61,7 +61,7 @@
 {"id": "ja-off-02", "lang": "ja", "q": "今日の天気は？", "expect": {"intent": "off_topic"}}
 {"id": "ja-noise-01", "lang": "ja", "q": "12台あります", "expect": {"models": []}}
 {"id": "ja-noise-02", "lang": "ja", "q": "15:00に買取できますか", "expect": {"models": []}}
-{"id": "ja-noise-03", "lang": "ja", "q": "17pro 256 12.5万で売れる？", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "ja-noise-03", "lang": "ja", "q": "17pro 256 12.5万で売れる？", "expect": {"intent": "target_price", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
 {"id": "ja-noise-04", "lang": "ja", "q": "iPad Pro 13 買取", "expect": {"models": []}}
 {"id": "ja-noise-05", "lang": "ja", "q": "5G対応の17はある？", "expect": {"models": ["iPhone 17"]}, "known_gap": "iphone・型番・容量のない裸の「17」は数字の誤認を避けるため機種にしない"}
 {"id": "ja-noise-06", "lang": "ja", "q": "15・16どっちが高い？", "expect": {"intent": "model_compare", "models": ["iPhone 15", "iPhone 16"]}, "known_gap": "iphone も型番もない数字だけの機種名"}
@@ -168,3 +168,15 @@
 {"id": "ja-color-09", "lang": "ja", "q": "iPhone 17 Pro 256 シルバーだといくら？", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"], "colors": ["silver"]}}
 {"id": "zh-color-09", "lang": "zh", "q": "17pro 256 深蓝色回收多少钱", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"], "colors": ["deep-blue"]}}
 {"id": "en-color-09", "lang": "en", "q": "how much for a cosmic orange iPhone 17 Pro 256GB?", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"], "colors": ["cosmic-orange"]}}
+{"id": "ja-storecmp-01", "lang": "ja", "q": "森森買取とアキモバ、17 Pro 256 はどっちが高い？", "expect": {"intent": "store_ranking", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "ja-storecmp-02", "lang": "ja", "q": "16e 128 は買取楽園とアキモバどちらが高く買い取ってくれる？", "expect": {"intent": "store_ranking", "models": ["iPhone 16e"], "capacities": ["128"]}}
+{"id": "zh-storecmp-01", "lang": "zh", "q": "17 pro 256 携帯空間和アキモバ哪家收得高", "expect": {"intent": "store_ranking", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "en-storecmp-01", "lang": "en", "q": "which pays more for a 17 pro 256, アキモバ or 携帯空間?", "expect": {"intent": "store_ranking", "models": ["iPhone 17 Pro"], "capacities": ["256"]}}
+{"id": "ja-target-01", "lang": "ja", "q": "17 Pro 256 は20万円以上で売れる？", "expect": {"intent": "target_price", "models": ["iPhone 17 Pro"], "capacities": ["256"], "target": 200000}}
+{"id": "ja-target-02", "lang": "ja", "q": "17プロマ 1TB、25.5万円超える？", "expect": {"intent": "target_price", "models": ["iPhone 17 Pro Max"], "capacities": ["1TB"], "target": 255000}}
+{"id": "ja-target-03", "lang": "ja", "q": "20万円以上で売れる？", "history": ["iPhone 17 Pro 512 はいくら？"], "expect": {"intent": "target_price", "models": ["iPhone 17 Pro"], "capacities": ["512"], "target": 200000}}
+{"id": "zh-target-01", "lang": "zh", "q": "17 pro 256 能卖到18万吗", "expect": {"intent": "target_price", "models": ["iPhone 17 Pro"], "capacities": ["256"], "target": 180000}}
+{"id": "zh-target-02", "lang": "zh", "q": "16e 128g 卖得到 9万日元 吗", "expect": {"intent": "target_price", "models": ["iPhone 16e"], "capacities": ["128"], "target": 90000}}
+{"id": "en-target-01", "lang": "en", "q": "can I get 200,000 yen for my iPhone 17 Pro 256GB?", "expect": {"intent": "target_price", "models": ["iPhone 17 Pro"], "capacities": ["256"], "target": 200000}}
+{"id": "en-target-02", "lang": "en", "q": "will a 17 pro max 512 sell for at least 230k?", "expect": {"intent": "target_price", "models": ["iPhone 17 Pro Max"], "capacities": ["512"], "target": 230000}}
+{"id": "en-price-target-none", "lang": "en", "q": "how much is the 17 pro 256 worth", "expect": {"intent": "price_quote", "models": ["iPhone 17 Pro"], "capacities": ["256"], "target": null}}

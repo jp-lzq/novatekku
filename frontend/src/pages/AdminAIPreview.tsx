@@ -56,6 +56,7 @@ const INTENT_LABELS: Record<string, string> = {
   sell_timing: '売り時',
   overseas_market: '海外の価格',
   bulk_quote: 'まとめ売りの合計',
+  target_price: '目標価格に届くか',
   catalog: '機種の一覧',
   retail_price: 'Apple 定価',
   store_info: '店舗情報',
@@ -75,7 +76,7 @@ type EvidenceView = 'cards' | 'lines' | 'json'
 
 const VIEW_LABELS: Record<EvidenceView, string> = { cards: 'カード', lines: 'AI に渡す文', json: 'JSON' }
 
-const EXAMPLES = ['17プロマ 256 どこが一番高い？', '17 pro と 16 pro max どっちが高く売れる？', '16e×3 と 17 256×2 の合計', 'iPhone Duo 1TB 香港ならいくら？', '17 pro 256 世界で一番高く売れるのはどこ？', '17 pro 256 シルバー いくら？']
+const EXAMPLES = ['17プロマ 256 どこが一番高い？', '17 pro と 16 pro max どっちが高く売れる？', '16e×3 と 17 256×2 の合計', 'iPhone Duo 1TB 香港ならいくら？', '17 pro 256 世界で一番高く売れるのはどこ？', '17 pro 256 シルバー いくら？', '森森買取とアキモバ、17 Pro 256 はどっちが高い？', '17 Pro 256 は20万円以上で売れる？']
 
 function DeviceCard({ device }: { device: Device }) {
   const details = [

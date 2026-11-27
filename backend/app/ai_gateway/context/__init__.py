@@ -63,10 +63,11 @@ def resolve(message: str, history: list[dict] | None = None, *, topic: Topic | N
         topic = topic_from_history(history or [])
     if topic is None:
         return resolved
-    # A follow-up must change something ("512 は？", "白は？", "香港なら？") or point back
+    # A follow-up must change something ("512 は？", "白は？", "香港なら？", "20万いける？") or point back
     # explicitly ("それはいくら？") while still being about phones.  "ビットコインの価格は？"
     # is short but neither, so it stays a question of its own.
-    names_detail = bool(current["markets"]) or any(
+    # a target amount ("20万円以上で売れる？") is a detail too: it asks about the phone of the earlier question
+    names_detail = bool(current["markets"]) or bool(current.get("target_price")) or any(
         follow_up_details(message, device.get("model") or "") for device in topic.devices
     )
     points_back = bool(signal.cues) and current["intent"] != I.OFF_TOPIC
